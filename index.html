@@ -12,6 +12,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Zilla+Slab:wght@500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" defer></script>
+<script src="cafes-logic.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
@@ -191,6 +192,22 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .cmp .cell-badges{margin-top:2px}
 .cmp tr:hover td{background:var(--sunk)}
 
+/* ---------- cafés ---------- */
+.cafe{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);padding:12px 13px;margin-bottom:10px}
+.cafe h3{font-family:var(--f-display);font-weight:600;font-size:17px;margin:0;
+  letter-spacing:-.01em;display:flex;justify-content:space-between;gap:10px;align-items:start}
+.cafe .desc{color:var(--muted);font-size:12.5px;margin-top:4px}
+.cafe ul{list-style:none;margin:8px 0 0;padding:0;font-size:13px}
+.cafe li{padding:3px 0;color:var(--ink-2);display:flex;gap:8px}
+.cafe li .dow{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);flex:0 0 74px;padding-top:2px}
+.cafe li .span{font-variant-numeric:tabular-nums}
+.cafe .verbatim{font-size:12.5px;color:var(--ink-2);margin-top:7px;
+  border-left:2px solid var(--line);padding-left:9px}
+.latebadge{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  padding:2px 6px;border-radius:3px;border:1px solid var(--soon);color:var(--soon)}
+
 /* ---------- map ---------- */
 #map{height:min(62vh,440px);border-radius:var(--r);border:1px solid var(--line);
   box-shadow:var(--shadow);background:var(--surface-2)}
@@ -240,6 +257,7 @@ footer a{color:var(--accent)}
 
   <div id="view-halls"><div class="halls" id="halls"></div></div>
   <div id="view-compare" class="hidden"></div>
+  <div id="view-cafes" class="hidden"></div>
   <div id="view-map" class="hidden">
     <div id="map"></div>
     <div class="maplegend">
@@ -266,7 +284,7 @@ const TAGS={vg:['Vegan','vg'],v:['Vegetarian','v'],gf:['Gluten-free','gf'],h:['H
 const TAG_COLOR={vg:'var(--vegan)',v:'var(--vegetarian)',gf:'var(--gf)',h:'var(--halal)',k:'var(--kosher)'};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const S={data:null,day:0,meal:0,view:'halls',diets:new Set(),exclude:new Set(),q:'',
-         here:null,openOnly:false};
+         here:null,openOnly:false,cafes:null};
 let map=null,markers=[],youMarker=null;
 
 const el=(t,c,txt)=>{const n=document.createElement(t);if(c)n.className=c;
@@ -475,6 +493,65 @@ function renderMap(rows){
   setTimeout(()=>map.invalidateSize(),60);
 }
 
+/* Open/closed reasoning lives in cafes-logic.js so it can be driven with a fabricated
+   clock from node (cafes-logic.test.mjs, 26 assertions). Keeping a second copy inline
+   would let the tested code and the shipped code drift apart. */
+const {daysLabel, isLate, venueStatus, fmt12} = window.CafeLogic;
+
+function renderCafes(){
+  const v=document.getElementById('view-cafes');v.replaceChildren();
+  const data=S.cafes;
+  if(!data){const e=el('div','empty');e.append(el('b',null,'Café hours not loaded'));
+    e.append(document.createTextNode('This section needs data/cafes.json.'));v.append(e);return;}
+
+  const rows=data.venues.map(x=>({...x,st:venueStatus(x.windows),
+                                  late:x.windows.some(isLate)}));
+  rows.sort((a,b)=>(b.st.open-a.st.open)||(b.late-a.late)||a.name.localeCompare(b.name));
+
+  const openNow=rows.filter(r=>r.st.open).length;
+  const lede=el('p','tally');
+  lede.append(el('b',null,String(openNow)),
+    document.createTextNode(` of ${rows.length} cafés and retail spots open now`));
+  v.append(lede);
+
+  rows.forEach(r=>{
+    const card=el('div','cafe');
+    const h=el('h3');h.append(document.createTextNode(r.name));
+    const right=el('span','badges');
+    if(r.late)right.append(el('span','latebadge','late'));
+    right.append(el('span','pill '+(r.st.open?'open':'shut'),
+      r.st.open?'open':'closed'));
+    h.append(right);card.append(h);
+    if(r.st.open&&r.st.until)
+      card.append(el('div','desc',`Open until ${r.st.until}`));
+    else if(r.st.opensAt)
+      card.append(el('div','desc',`Opens ${r.st.opensAt}`));
+    if(r.description)card.append(el('div','desc',r.description));
+    if(r.windows.length){
+      const ul=el('ul');
+      r.windows.forEach(w=>{
+        const li=el('li');
+        li.append(el('span','dow',daysLabel(w.days)));
+        li.append(el('span','span',`${fmt12(w.open)} – ${fmt12(w.close)}`
+          +(w.overnight?' (next day)':'')));
+        ul.append(li);
+      });
+      card.append(ul);
+    }
+    // Always show what R&DE actually published — the parse is a convenience, not the source.
+    if(r.hours_text&&r.hours_text.length){
+      const vb=el('div','verbatim');
+      vb.textContent='As published: '+r.hours_text.join(' · ');
+      card.append(vb);
+    }
+    v.append(card);
+  });
+  const note=el('p','tally');
+  note.textContent='Cafés publish hours, not daily menus. Hours are read from R&DE\u2019s '
+    +'café page; the line under each venue is their wording, unedited.';
+  v.append(note);
+}
+
 function buildControls(){
   const d=S.data,today=new Date();today.setHours(0,0,0,0);
   const days=document.getElementById('days');days.replaceChildren();
@@ -492,7 +569,7 @@ function buildControls(){
     b.setAttribute('aria-pressed',String(i===S.meal));
     b.onclick=()=>{S.meal=i;render();};meals.append(b);});
   const views=document.getElementById('views');views.replaceChildren();
-  [['halls','Halls'],['compare','Compare'],['map','Map']].forEach(([k,label])=>{
+  [['halls','Halls'],['compare','Compare'],['map','Map'],['cafes','Cafés']].forEach(([k,label])=>{
     const b=el('button',null,label);b.type='button';
     b.setAttribute('aria-pressed',String(S.view===k));
     b.onclick=()=>{S.view=k;render();};views.append(b);});
@@ -544,9 +621,11 @@ function render(){
 
   document.getElementById('view-halls').classList.toggle('hidden',S.view!=='halls');
   document.getElementById('view-compare').classList.toggle('hidden',S.view!=='compare');
+  document.getElementById('view-cafes').classList.toggle('hidden',S.view!=='cafes');
   document.getElementById('view-map').classList.toggle('hidden',S.view!=='map');
   if(S.view==='halls')renderHalls(rows);
   else if(S.view==='compare')renderCompare(rows);
+  else if(S.view==='cafes')renderCafes();
   else renderMap(rows);
 }
 
@@ -594,6 +673,11 @@ function boot(d){
   render();
   setInterval(render,60000);   // keep "closes in N min" honest
 }
+
+// Café hours are a separate, optional payload: if it fails the other three tabs are
+// unaffected, so it is fetched independently rather than blocking boot.
+fetch('data/cafes.json').then(r=>r.ok?r.json():null)
+  .then(c=>{S.cafes=c;if(S.data&&S.view==='cafes')renderCafes();}).catch(()=>{});
 
 fetch('data/site.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
   .then(boot).catch(err=>{
