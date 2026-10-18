@@ -196,7 +196,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 
 /* ---------- saved dishes ---------- */
 .star{background:none;border:none;cursor:pointer;padding:2px 5px;margin:-2px 0 -2px -4px;
-  font-size:15px;line-height:1;color:var(--line);flex:0 0 auto;border-radius:4px}
+  font-size:16px;line-height:1;color:var(--muted);flex:0 0 auto;border-radius:4px}
 .star:hover{color:var(--soon)}
 .star[aria-pressed="true"]{color:var(--soon)}
 .saved{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--soon);
@@ -248,6 +248,18 @@ footer{margin-top:24px;padding-top:13px;border-top:1px solid var(--line);font-si
 footer p{margin:5px 0}
 footer a{color:var(--accent)}
 .hidden{display:none!important}
+/* The hall summary is a 2-column grid, and the status column sizes to its longest
+   line. The honest "no breakfast service — lunch & dinner only" label is about three
+   times longer than the "closed 8pm" it replaced, and was taking 215px of a 375px
+   viewport — wrapping the hall name into it. Below 460px the status drops beneath the
+   name instead of competing for width. */
+@media (max-width:460px){
+  .hall > summary{grid-template-columns:1fr}
+  .hall > summary .hstat{grid-column:1;grid-row:auto;text-align:left;margin-top:5px;
+    display:flex;flex-wrap:wrap;gap:3px 9px;align-items:baseline}
+  .hall > summary .hstat .when,
+  .hall > summary .hstat .far{display:inline;margin-top:0}
+}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
