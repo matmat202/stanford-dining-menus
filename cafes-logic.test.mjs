@@ -3,9 +3,14 @@
  * page can never exercise.
  */
 import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const L = require('./cafes-logic.js');
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+// Resolve from this file, not the shell's cwd: the publish pipeline runs it from the
+// project root and a cwd-dependent test fails there while passing locally.
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
+const L = require(path.join(HERE, 'cafes-logic.js'));
 
 let pass = 0, fail = 0;
 const check = (name, cond, detail = '') => {
@@ -61,7 +66,7 @@ check('midnight is 12am',        L.fmt12('00:00') === '12am', L.fmt12('00:00'));
 
 console.log('\n6. against the real scraped data');
 {
-  const d = JSON.parse(fs.readFileSync('./data/cafes.json', 'utf8'));
+  const d = JSON.parse(fs.readFileSync(path.join(HERE, 'data', 'cafes.json'), 'utf8'));
   check('every venue has windows or verbatim text',
     d.venues.every(v => (v.windows && v.windows.length) || (v.hours_text && v.hours_text.length)));
   check('every window has a valid day index',
