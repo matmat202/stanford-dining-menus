@@ -14,6 +14,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" defer></script>
 <script src="cafes-logic.js"></script>
 <script src="saved-logic.js"></script>
+<script src="url-state.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
@@ -267,6 +268,7 @@ footer a{color:var(--accent)}
       <input type="search" id="q" placeholder="Search dishes or ingredients" autocomplete="off">
       <button class="iconbtn" id="btn-filters" type="button" aria-pressed="false">Filters</button>
       <button class="iconbtn" id="btn-near" type="button">Near me</button>
+      <button class="iconbtn" id="btn-share" type="button" aria-label="Copy a link to this view">Share</button>
     </div>
     <div class="seg" id="views" style="margin-top:7px"></div>
   </div>
@@ -367,6 +369,14 @@ function dishMatches(x){
 }
 
 /** Halls serving the chosen meal, with their matching dishes, sorted sensibly. */
+/** Is the selected day actually today? "Open now" only means something if so. */
+function viewingToday(){
+  if(!S.data)return false;
+  const t=new Date();t.setHours(0,0,0,0);
+  return parseDay(S.data.days[S.day]).getTime()===t.getTime();
+}
+const openFilterActive=()=>S.openOnly&&viewingToday();
+
 function currentHalls(){
   const d=S.data,date=parseDay(d.days[S.day]),mealName=d.meals[S.meal];
   const rows=[];
@@ -476,7 +486,7 @@ function renderHalls(rows){
   // a dish name appearing at exactly one hall this meal is worth flagging
   const freq={};
   rows.forEach(r=>new Set(r.matched.map(x=>x.n)).forEach(n=>freq[n]=(freq[n]||0)+1));
-  const shown=rows.filter(r=>r.matched.length&&(!S.openOnly||r.st.k==='open'));
+  const shown=rows.filter(r=>r.matched.length&&(!openFilterActive()||r.st.k==='open'));
   shown.forEach((r,idx)=>{
     const card=el('details','hall');
     if(idx<2||shown.length<=3)card.open=true;
@@ -508,7 +518,9 @@ function renderHalls(rows){
     const e=el('div','empty');
     e.append(el('b',null,rows.length?'Nothing matches':'Nothing served'));
     e.append(document.createTextNode(rows.length
-      ?'Loosen a filter, clear the search, or turn off “open now”.'
+      ?(openFilterActive()
+         ?'Nothing is serving right now. Turn off “open now” to see the full menu.'
+         :'Loosen a filter or clear the search.')
       :'No hall publishes this meal on this day.'));
     box.append(e);
   }
@@ -516,7 +528,7 @@ function renderHalls(rows){
 
 function renderCompare(rows){
   const v=document.getElementById('view-compare');v.replaceChildren();
-  const cols=rows.filter(r=>r.matched.length&&(!S.openOnly||r.st.k==='open'));
+  const cols=rows.filter(r=>r.matched.length&&(!openFilterActive()||r.st.k==='open'));
   if(!cols.length){const e=el('div','empty');e.append(el('b',null,'Nothing to compare'));
     v.append(e);return;}
   const box=el('div','cmp'),t=el('table'),thead=el('thead'),tr=el('tr');
@@ -676,8 +688,10 @@ function buildDrawer(){
   const d=S.data,dr=document.getElementById('drawer');dr.replaceChildren();
   dr.append(el('h3',null,'Show only'));
   const c1=el('div','chips');
-  const on=el('button','chip');on.type='button';on.textContent='Open now';
-  on.setAttribute('aria-pressed',String(S.openOnly));
+  const on=el('button','chip');on.type='button';
+  on.textContent=viewingToday()?'Open now':'Open now (today only)';
+  on.title=viewingToday()?'':'Only applies when viewing today';
+  on.setAttribute('aria-pressed',String(S.openOnly&&viewingToday()));
   on.style.setProperty('--c','var(--open)');on.classList.add('diet');
   on.onclick=()=>{S.openOnly=!S.openOnly;render();};
   c1.append(on);
@@ -703,10 +717,20 @@ function buildDrawer(){
   dr.append(clear);
 }
 
+function syncHash(){
+  // replaceState, not pushState: every filter tap would otherwise add a history entry
+  // and make the back button useless.
+  try{
+    const h=window.UrlState.serialize(S,S.data);
+    history.replaceState(null,'',h?('#'+h):location.pathname+location.search);
+  }catch{}
+}
+
 function render(){
   buildControls();buildDrawer();
+  if(S.data)syncHash();
   const rows=currentHalls();
-  const shown=rows.filter(r=>r.matched.length&&(!S.openOnly||r.st.k==='open'));
+  const shown=rows.filter(r=>r.matched.length&&(!openFilterActive()||r.st.k==='open'));
   const dishes=shown.reduce((n,r)=>n+r.matched.length,0);
   const openNow=rows.filter(r=>r.st.k==='open').length;
   const t=document.getElementById('tally');t.replaceChildren();
@@ -730,12 +754,27 @@ function render(){
 function boot(d){
   S.data=d;
   S.saved=loadSaved();
-  const h=new Date().getHours()+new Date().getMinutes()/60;
-  const want=h<10.5?'Breakfast':h<16?'Lunch':'Dinner';
-  S.meal=Math.max(0,d.meals.indexOf(want));
   const today=new Date();today.setHours(0,0,0,0);
   const ti=d.days.findIndex(x=>parseDay(x).getTime()===today.getTime());
-  S.day=ti<0?0:ti;
+
+  // A shared link wins over the clock; anything it does not specify falls back to the
+  // defaults. Everything from the hash has already been validated against the payload.
+  const link=window.UrlState.parse(location.hash,d);
+  S.day=link.day;
+  if(link.meal>=0){S.meal=link.meal;}
+  else{
+    const h=new Date().getHours()+new Date().getMinutes()/60;
+    const want=h<10.5?'Breakfast':h<16?'Lunch':'Dinner';
+    S.meal=Math.max(0,d.meals.indexOf(want));
+  }
+  S.view=link.view;S.diets=link.diets;S.exclude=link.exclude;
+  S.q=link.q;S.openOnly=link.openOnly;
+  if(link.staleDate){
+    const w=el('div','stale');
+    w.textContent=`That link pointed at ${link.staleDate}, which is outside the week `
+      +`currently published. Showing today instead.`;
+    document.getElementById('stale').append(w);
+  }
 
   const when=new Date(d.scraped_at);
   const hoursOld=(Date.now()-when.getTime())/3.6e6;
@@ -754,12 +793,30 @@ function boot(d){
     'elsewhere). Gerhard Casper and Branner serve lunch and dinner only.';
   document.getElementById('hoursnote').textContent=d.hours_note||'';
 
+  if(S.q)document.getElementById('q').value=S.q;
   document.getElementById('q').addEventListener('input',e=>{
     S.q=e.target.value.trim().toLowerCase();render();});
   document.getElementById('btn-filters').onclick=e=>{
     const dr=document.getElementById('drawer');
     const openNow=dr.classList.toggle('hidden');
     e.currentTarget.setAttribute('aria-pressed',String(!openNow));};
+  document.getElementById('btn-share').onclick=async e=>{
+    const btn=e.currentTarget;
+    syncHash();
+    const url=location.href;
+    try{
+      await navigator.clipboard.writeText(url);
+      btn.textContent='Copied';
+    }catch{
+      // Clipboard is blocked in plenty of contexts; show the link rather than fail
+      // silently, so the user can copy it by hand.
+      const w=el('div','stale');w.textContent=url;
+      document.getElementById('stale').replaceChildren(w);
+      btn.textContent='Link below';
+    }
+    setTimeout(()=>{btn.textContent='Share';},2000);
+  };
+
   document.getElementById('btn-near').onclick=e=>{
     const btn=e.currentTarget;
     if(!navigator.geolocation){btn.textContent='No GPS';return;}
