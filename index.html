@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Zilla+Slab:wght@500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" defer></script>
 <script src="cafes-logic.js"></script>
+<script src="saved-logic.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
@@ -192,6 +193,25 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .cmp .cell-badges{margin-top:2px}
 .cmp tr:hover td{background:var(--sunk)}
 
+/* ---------- saved dishes ---------- */
+.star{background:none;border:none;cursor:pointer;padding:2px 5px;margin:-2px 0 -2px -4px;
+  font-size:15px;line-height:1;color:var(--line);flex:0 0 auto;border-radius:4px}
+.star:hover{color:var(--soon)}
+.star[aria-pressed="true"]{color:var(--soon)}
+.saved{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--soon);
+  border-radius:var(--r);box-shadow:var(--shadow);padding:12px 13px;margin-bottom:12px}
+.saved h2{font-family:var(--f-display);font-weight:600;font-size:16px;margin:0 0 8px;
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.saved h2 button{background:none;border:none;color:var(--accent);font-family:var(--f-ui);
+  font-size:12px;cursor:pointer;text-decoration:underline;text-underline-offset:2px;padding:0}
+.saved ul{list-style:none;margin:0;padding:0}
+.saved > ul > li{padding:7px 0;border-top:1px solid var(--sunk)}
+.saved > ul > li:first-child{border-top:none}
+.saved .dn{font-weight:500;font-size:14.5px}
+.saved .when{color:var(--ink-2);font-size:12.5px;margin-top:2px}
+.saved .when em{font-style:normal;color:var(--muted)}
+.saved .gone{color:var(--muted);font-size:12.5px;margin-top:2px}
+
 /* ---------- cafés ---------- */
 .cafe{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
   box-shadow:var(--shadow);padding:12px 13px;margin-bottom:10px}
@@ -253,6 +273,7 @@ footer a{color:var(--accent)}
 
   <div class="drawer hidden" id="drawer"></div>
   <div id="stale"></div>
+  <div id="saved-panel"></div>
   <p class="tally" id="tally"></p>
 
   <div id="view-halls"><div class="halls" id="halls"></div></div>
@@ -284,7 +305,7 @@ const TAGS={vg:['Vegan','vg'],v:['Vegetarian','v'],gf:['Gluten-free','gf'],h:['H
 const TAG_COLOR={vg:'var(--vegan)',v:'var(--vegetarian)',gf:'var(--gf)',h:'var(--halal)',k:'var(--kosher)'};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const S={data:null,day:0,meal:0,view:'halls',diets:new Set(),exclude:new Set(),q:'',
-         here:null,openOnly:false,cafes:null};
+         here:null,openOnly:false,cafes:null,saved:new Set(),savedIndex:null};
 let map=null,markers=[],youMarker=null;
 
 const el=(t,c,txt)=>{const n=document.createElement(t);if(c)n.className=c;
@@ -312,7 +333,15 @@ function windowFor(hall,date,mealName){
 /** open | soon | shut, plus a human phrase. Only meaningful for today. */
 function statusFor(hall,date,mealName){
   const w=windowFor(hall,date,mealName);
-  if(!w)return{k:'shut',txt:'not served'};
+  if(!w){
+    // R&DE's two sources disagree here: the menu app publishes, say, a Sunday
+    // breakfast menu for Arrillaga while the hours page lists no weekend breakfast
+    // (brunch 9:30-1:30 covers it). "not served" beside a dish count reads as a bug,
+    // so name the meals the hall actually serves that day.
+    const wk=(date.getDay()===0||date.getDay()===6)?'weekend':'weekday';
+    const other=Object.keys((hall.hours||{})[wk]||{});
+    return{k:'shut',txt:other.length?`no ${mealName.toLowerCase()} service — ${other.join(' & ').toLowerCase()} only`:'not served',neutral:true};
+  }
   const today=new Date();today.setHours(0,0,0,0);
   const isToday=date.getTime()===today.getTime();
   if(!isToday)return{k:'shut',txt:`${fmt(w[0])}–${fmt(w[1])}`,neutral:true};
@@ -359,6 +388,13 @@ function currentHalls(){
 
 function dishNode(x,uniqueAt){
   const li=el('li'),det=el('details','dish'),sum=el('summary');
+  const star=el('button','star');star.type='button';
+  star.textContent=S.saved.has(x.n)?'\u2605':'\u2606';
+  star.setAttribute('aria-pressed',String(S.saved.has(x.n)));
+  star.setAttribute('aria-label',(S.saved.has(x.n)?'Unsave ':'Save ')+x.n);
+  // The button sits inside <summary>, which would otherwise expand the row on click.
+  star.onclick=e=>{e.preventDefault();e.stopPropagation();toggleSaved(x.n);};
+  sum.append(star);
   const n=el('span','dish-n');n.textContent=x.n;
   if(uniqueAt)n.append(el('span','only','only here'));
   sum.append(n);
@@ -372,6 +408,67 @@ function dishNode(x,uniqueAt){
   if(x.x){dl.append(el('dt',null,'Shared equipment with'),el('dd',null,x.x.toLowerCase()));}
   if(!x.i&&!x.a&&!x.x)dl.append(el('dd',null,'No ingredient detail published.'));
   det.append(dl);li.append(det);return li;
+}
+
+const SAVED_KEY='dining/saved-dishes/v1';
+function loadSaved(){try{return new Set(JSON.parse(localStorage.getItem(SAVED_KEY)||'[]'));}
+  catch{return new Set();}}
+function persistSaved(){try{localStorage.setItem(SAVED_KEY,JSON.stringify([...S.saved]));}catch{}}
+function toggleSaved(name){
+  S.saved.has(name)?S.saved.delete(name):S.saved.add(name);
+  persistSaved();render();
+}
+
+const MEAL_WORD={Breakfast:'breakfast',Lunch:'lunch',Dinner:'dinner'};
+function renderSaved(){
+  const host=document.getElementById('saved-panel');host.replaceChildren();
+  if(!S.saved.size||!S.data)return;
+  const d=S.data;
+  if(!S.savedIndex)S.savedIndex=window.SavedLogic.buildIndex(d);
+  const byName=new Map();
+  d.dishes.forEach((x,i)=>{if(S.saved.has(x.n)&&!byName.has(x.n))byName.set(x.n,i);});
+
+  const box=el('div','saved');
+  const h=el('h2');h.append(document.createTextNode(`Saved dishes (${S.saved.size})`));
+  const clr=el('button',null,'clear');clr.type='button';
+  clr.onclick=()=>{S.saved.clear();persistSaved();render();};
+  h.append(clr);box.append(h);
+
+  const ul=el('ul');
+  [...S.saved].sort().forEach(name=>{
+    const li=el('li');li.append(el('div','dn',name));
+    const idx=byName.get(name);
+    if(idx===undefined){
+      li.append(el('div','gone','Not on any menu this week.'));
+    }else{
+      const r=window.SavedLogic.servingsFor(idx,S.savedIndex,d);
+      if(!r.upcoming.length){
+        li.append(el('div','gone',
+          r.total?`No servings left this week (${r.total} earlier).`:'Not served this week.'));
+      }else if(r.everyday){
+        const w=el('div','when');
+        w.append(document.createTextNode(`Served most days — next: `));
+        const n0=r.upcoming[0];
+        w.append(el('strong',null,`${n0.hall}, ${dayWord(n0.dayIdx)} ${MEAL_WORD[d.meals[n0.mealIdx]]}`));
+        li.append(w);
+      }else{
+        const w=el('div','when');
+        w.append(document.createTextNode(r.shown.map(sv=>
+          `${dayWord(sv.dayIdx)} ${MEAL_WORD[d.meals[sv.mealIdx]]} · ${sv.hall}`).join('  |  ')));
+        if(r.more)w.append(el('em',null,`  +${r.more} more`));
+        li.append(w);
+      }
+    }
+    ul.append(li);
+  });
+  box.append(ul);host.append(box);
+}
+
+function dayWord(i){
+  const today=new Date();today.setHours(0,0,0,0);
+  const dt=parseDay(S.data.days[i]);
+  const diff=Math.round((dt-today)/86400000);
+  return diff===0?'today':diff===1?'tomorrow':DOW[dt.getDay()];
 }
 
 function renderHalls(rows){
@@ -623,7 +720,8 @@ function render(){
   document.getElementById('view-compare').classList.toggle('hidden',S.view!=='compare');
   document.getElementById('view-cafes').classList.toggle('hidden',S.view!=='cafes');
   document.getElementById('view-map').classList.toggle('hidden',S.view!=='map');
-  if(S.view==='halls')renderHalls(rows);
+  document.getElementById('saved-panel').classList.toggle('hidden',S.view!=='halls');
+  if(S.view==='halls'){renderSaved();renderHalls(rows);}
   else if(S.view==='compare')renderCompare(rows);
   else if(S.view==='cafes')renderCafes();
   else renderMap(rows);
@@ -631,6 +729,7 @@ function render(){
 
 function boot(d){
   S.data=d;
+  S.saved=loadSaved();
   const h=new Date().getHours()+new Date().getMinutes()/60;
   const want=h<10.5?'Breakfast':h<16?'Lunch':'Dinner';
   S.meal=Math.max(0,d.meals.indexOf(want));
