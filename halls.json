@@ -2,91 +2,283 @@
   "_source": {
     "hours": "https://rde.stanford.edu/dining-hospitality/dining-locations-hours",
     "coords": "OpenStreetMap via Overpass API, 2026-10-17",
-    "note": "Hours are R&DE's published academic-quarter hours and change on holidays and between quarters. Always the hall's own door sign wins."
+    "note": "Hours are R&DE's published academic-quarter hours and change on holidays and between quarters. Always the hall's own door sign wins.",
+    "checked": "hours verified against the published page by check_hours.py"
   },
   "halls": {
     "Arrillaga": {
       "name": "Arrillaga Family",
       "concept": "Arrillaga Family Dining Commons",
-      "coords": [37.4254196, -122.1641092],
+      "coords": [
+        37.4254196,
+        -122.1641092
+      ],
       "hours": {
-        "weekday": {"Breakfast": ["7:30", "10:00"], "Lunch": ["11:00", "15:00"], "Dinner": ["17:00", "20:30"]},
-        "weekend": {"Lunch": ["9:30", "13:30"], "Dinner": ["17:00", "20:00"]}
+        "weekday": {
+          "Breakfast": [
+            "7:30",
+            "10:00"
+          ],
+          "Lunch": [
+            "11:00",
+            "15:00"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:30"
+          ]
+        },
+        "weekend": {
+          "Lunch": [
+            "9:30",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        }
       },
-      "latenight": {"label": "Arrillaga Nights", "days": "Tue–Sat", "hours": ["21:00", "02:00"]}
+      "latenight": {
+        "label": "Arrillaga Nights",
+        "days": "Tue\u2013Sat",
+        "hours": [
+          "21:00",
+          "02:00"
+        ]
+      }
     },
     "Lakeside": {
       "name": "Lakeside",
       "concept": "Magnolia Southern Dining",
-      "coords": [37.4247579, -122.1764635],
+      "coords": [
+        37.4247579,
+        -122.1764635
+      ],
       "hours": {
-        "weekday": {"Breakfast": ["7:30", "10:00"], "Lunch": ["11:00", "14:00"], "Dinner": ["17:00", "20:30"]},
-        "weekend": {"Lunch": ["9:30", "13:30"], "Dinner": ["17:00", "20:00"]}
+        "weekday": {
+          "Breakfast": [
+            "7:30",
+            "10:00"
+          ],
+          "Lunch": [
+            "11:00",
+            "14:00"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:30"
+          ]
+        },
+        "weekend": {
+          "Lunch": [
+            "9:30",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        }
       },
-      "latenight": {"label": "Late Night", "days": "Sun–Thu", "hours": ["21:30", "02:00"]}
+      "latenight": {
+        "label": "Late Night",
+        "days": "Sun\u2013Thu",
+        "hours": [
+          "21:30",
+          "02:00"
+        ]
+      }
     },
     "Wilbur": {
       "name": "Wilbur",
       "concept": "Star Ginger",
-      "coords": [37.4239643, -122.1631633],
+      "coords": [
+        37.4239643,
+        -122.1631633
+      ],
       "hours": {
-        "weekday": {"Breakfast": ["7:30", "9:00"], "Lunch": ["11:00", "13:30"], "Dinner": ["17:00", "20:00"]},
-        "weekend": {"Lunch": ["10:30", "13:30"], "Dinner": ["17:00", "20:00"]}
+        "weekday": {
+          "Breakfast": [
+            "7:30",
+            "9:00"
+          ],
+          "Lunch": [
+            "11:00",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        },
+        "weekend": {
+          "Lunch": [
+            "10:30",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        }
       }
     },
     "Stern": {
       "name": "Stern",
       "concept": "Cardinal Sage",
-      "coords": [37.4243217, -122.165628],
+      "coords": [
+        37.4243217,
+        -122.165628
+      ],
       "hours": {
-        "weekday": {"Breakfast": ["7:30", "9:00"], "Lunch": ["11:00", "13:30"], "Dinner": ["17:00", "20:00"]},
-        "weekend": {"Lunch": ["10:30", "13:30"], "Dinner": ["17:00", "20:00"]}
+        "weekday": {
+          "Breakfast": [
+            "7:30",
+            "9:00"
+          ],
+          "Lunch": [
+            "11:00",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        },
+        "weekend": {
+          "Lunch": [
+            "10:30",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        }
       }
     },
     "FlorenceMoore": {
       "name": "Florence Moore",
       "concept": "Kosher Kitchen",
       "specialty": "kosher",
-      "coords": [37.422005, -122.171801],
+      "coords": [
+        37.422005,
+        -122.171801
+      ],
       "hours": {
-        "weekday": {"Breakfast": ["7:30", "9:00"], "Lunch": ["11:00", "13:30"], "Dinner": ["17:00", "20:00"]},
-        "weekend": {"Lunch": ["10:30", "13:30"], "Dinner": ["17:00", "20:00"]}
+        "weekday": {
+          "Breakfast": [
+            "7:30",
+            "9:00"
+          ],
+          "Lunch": [
+            "11:00",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        },
+        "weekend": {
+          "Lunch": [
+            "10:30",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        }
       }
     },
     "Ricker": {
       "name": "Ricker",
       "concept": "Ricker Dining",
-      "coords": [37.4255131, -122.1804845],
+      "coords": [
+        37.4255131,
+        -122.1804845
+      ],
       "hours": {
-        "weekday": {"Breakfast": ["7:30", "9:00"], "Lunch": ["11:00", "13:30"], "Dinner": ["17:00", "20:00"]},
-        "weekend": {"Lunch": ["10:30", "13:30"], "Dinner": ["17:00", "20:00"]}
+        "weekday": {
+          "Breakfast": [
+            "7:30",
+            "9:00"
+          ],
+          "Lunch": [
+            "11:00",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        },
+        "weekend": {
+          "Lunch": [
+            "10:30",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        }
       }
     },
     "GerhardCasper": {
       "name": "Gerhard Casper",
       "concept": "Spice Flower Kitchen",
       "specialty": "vegetarian",
-      "coords": [37.4264292, -122.1579323],
+      "coords": [
+        37.4264292,
+        -122.1579323
+      ],
       "coords_approximate": true,
       "hours": {
-        "weekday": {"Lunch": ["11:00", "13:30"], "Dinner": ["17:00", "20:00"]},
-        "weekend": {"Lunch": ["11:00", "13:30"], "Dinner": ["17:00", "20:00"]}
-      }
+        "weekday": {
+          "Lunch": [
+            "11:00",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "20:00"
+          ]
+        }
+      },
+      "note": "Weekdays only \u2014 R&DE lists no weekend service."
     },
     "Branner": {
       "name": "Branner",
       "concept": "Allergen-Friendly Kitchen",
       "specialty": "allergen-friendly",
-      "coords": [37.425518, -122.162865],
+      "coords": [
+        37.425518,
+        -122.162865
+      ],
       "hours": {
-        "weekday": {"Lunch": ["11:00", "13:30"], "Dinner": ["17:00", "19:00"]},
-        "weekend": {"Lunch": ["11:00", "13:30"], "Dinner": ["17:00", "19:00"]}
-      }
+        "weekday": {
+          "Lunch": [
+            "11:00",
+            "13:30"
+          ],
+          "Dinner": [
+            "17:00",
+            "19:00"
+          ]
+        }
+      },
+      "note": "Weekdays only \u2014 R&DE lists no weekend service."
     },
     "EVGR": {
       "name": "EVGR",
       "concept": "EVGR Dining",
-      "coords": [37.4256327, -122.157455],
+      "coords": [
+        37.4256327,
+        -122.157455
+      ],
       "no_menu_published": true
     }
   }
