@@ -1,0 +1,606 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Stanford Dining Menus</title>
+<meta name="description" content="Every Stanford dining hall menu, with hours, distance and allergen filters. Built for phones.">
+<meta name="theme-color" content="#8c1515">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dining">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Zilla+Slab:wght@500;600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" defer></script>
+<style>
+/* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
+.leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
+.leaflet-map-pane canvas,.leaflet-zoom-box,.leaflet-image-layer{position:absolute;left:0;top:0}
+.leaflet-container{overflow:hidden;-webkit-tap-highlight-color:transparent;background:var(--surface-2);
+  font-family:var(--f-ui);font-size:12px}
+.leaflet-tile{filter:inherit;visibility:hidden}
+.leaflet-tile-loaded{visibility:inherit}
+.leaflet-pane{z-index:400}.leaflet-tile-pane{z-index:200}.leaflet-overlay-pane{z-index:400}
+.leaflet-marker-pane{z-index:600}.leaflet-popup-pane{z-index:700}
+.leaflet-control{position:relative;z-index:800;pointer-events:auto;float:left;clear:both}
+.leaflet-top{position:absolute;z-index:1000;pointer-events:none;top:0}
+.leaflet-right{right:0}.leaflet-right .leaflet-control{float:right;margin-right:10px}
+.leaflet-top .leaflet-control{margin-top:10px}
+.leaflet-control-zoom a{display:block;width:28px;height:28px;line-height:28px;text-align:center;
+  background:var(--surface);color:var(--ink);text-decoration:none;border:1px solid var(--line);
+  font-size:17px;font-weight:600}
+.leaflet-control-attribution{background:var(--surface);padding:0 5px;font-size:10px;
+  color:var(--muted);float:right;clear:both}
+.leaflet-control-attribution a{color:var(--muted)}
+.leaflet-container a.leaflet-popup-close-button{position:absolute;top:4px;right:4px;
+  text-decoration:none;color:var(--muted);padding:2px 5px;font-size:15px}
+.leaflet-popup{position:absolute;text-align:center;margin-bottom:20px}
+.leaflet-popup-content-wrapper{background:var(--surface);color:var(--ink);border-radius:4px;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);border:1px solid var(--line)}
+.leaflet-popup-content{margin:10px 12px;line-height:1.4;font-size:13px}
+.leaflet-popup-tip-container{width:0;height:0}
+.leaflet-zoom-animated{transform-origin:0 0}
+.leaflet-pin{border-radius:50%;border:2px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+
+:root{
+  --ground:#f7f7f4; --surface:#ffffff; --surface-2:#eff0ec; --sunk:#f3f4f0;
+  --ink:#1a1d1a; --ink-2:#4a504a; --muted:#6b706b; --line:#dcded7;
+  --accent:#8c1515; --accent-ink:#ffffff; --accent-soft:#f6e6e6;
+  --open:#1d6b3a; --closed:#8a8f89; --soon:#8a5a00;
+  --vegan:#2f6b3f; --vegetarian:#5e7b2a; --gf:#9a6515; --halal:#1f6a6a; --kosher:#4a4a8c;
+  --shadow:0 1px 2px rgba(26,29,26,.07),0 3px 10px rgba(26,29,26,.045);
+  --r:9px;
+  --f-display:"Zilla Slab",Georgia,serif;
+  --f-ui:"Archivo","Helvetica Neue",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --ground:#141614; --surface:#1c1f1c; --surface-2:#262a26; --sunk:#191c19;
+  --ink:#e8eae6; --ink-2:#b2b8b1; --muted:#8a918a; --line:#333733;
+  --accent:#e36a63; --accent-ink:#1a1210; --accent-soft:#3a2220;
+  --open:#64c187; --closed:#7d837c; --soon:#d2a148;
+  --vegan:#7fc08d; --vegetarian:#aec972; --gf:#deab5f; --halal:#6cc0c0; --kosher:#9a9ad8;
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 3px 12px rgba(0,0,0,.3);
+}}
+:root[data-theme="dark"]{
+  --ground:#141614; --surface:#1c1f1c; --surface-2:#262a26; --sunk:#191c19;
+  --ink:#e8eae6; --ink-2:#b2b8b1; --muted:#8a918a; --line:#333733;
+  --accent:#e36a63; --accent-ink:#1a1210; --accent-soft:#3a2220;
+  --open:#64c187; --closed:#7d837c; --soon:#d2a148;
+  --vegan:#7fc08d; --vegetarian:#aec972; --gf:#deab5f; --halal:#6cc0c0; --kosher:#9a9ad8;
+  --shadow:0 1px 2px rgba(0,0,0,.45),0 3px 12px rgba(0,0,0,.3);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-ui);
+  font-size:15px;line-height:1.45;-webkit-font-smoothing:antialiased}
+.wrap{max-width:860px;margin:0 auto;padding-inline:14px;
+  padding-block:0 calc(26px + env(safe-area-inset-bottom))}
+
+/* ---------- header ---------- */
+header.top{padding-block:16px 10px}
+header.top h1{font-family:var(--f-display);font-weight:700;font-size:25px;margin:0;
+  letter-spacing:-.015em;line-height:1.08}
+header.top h1 .red{color:var(--accent)}
+.meta{color:var(--muted);font-size:11.5px;margin-top:3px;display:flex;flex-wrap:wrap;gap:3px 10px}
+.meta a{color:var(--muted)}
+
+/* ---------- sticky controls ---------- */
+.rail{position:sticky;top:0;z-index:900;background:var(--ground);padding-block:8px 9px;
+  border-bottom:1px solid var(--line);margin-bottom:12px}
+.scroller{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;padding-bottom:1px}
+.scroller::-webkit-scrollbar{display:none}
+.day{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:6px 10px;cursor:pointer;font-family:var(--f-ui);font-size:12px;color:var(--ink-2);
+  display:flex;flex-direction:column;align-items:center;min-width:50px;line-height:1.2;gap:1px}
+.day b{font-weight:600;font-variant-numeric:tabular-nums;font-size:13px}
+.day small{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.day[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--ground)}
+.day[aria-pressed="true"] small{color:var(--ground);opacity:.8}
+.seg{display:flex;gap:5px;margin-top:7px}
+.seg button{flex:1;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:8px 4px;font-family:var(--f-ui);font-size:13px;font-weight:600;color:var(--ink-2);
+  cursor:pointer;min-height:38px}
+.seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
+  color:var(--accent-ink)}
+.toolbar{display:flex;gap:6px;margin-top:7px;align-items:center}
+.toolbar input{flex:1;min-width:0;font-family:var(--f-ui);font-size:15px;padding:8px 11px;
+  color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.toolbar input::placeholder{color:var(--muted)}
+.iconbtn{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:8px 11px;font-size:12.5px;font-weight:600;color:var(--ink-2);
+  cursor:pointer;min-height:38px;font-family:var(--f-ui);white-space:nowrap}
+.iconbtn[aria-pressed="true"],.iconbtn.on{background:var(--accent);border-color:var(--accent);
+  color:var(--accent-ink)}
+button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px}
+
+/* ---------- filter drawer ---------- */
+.drawer{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  padding:11px 12px;margin-bottom:12px}
+.drawer h3{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin:0 0 6px}
+.drawer h3:not(:first-child){margin-top:12px}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.chip{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);
+  padding:6px 11px;cursor:pointer;font-family:var(--f-ui);font-size:13px;font-weight:500;
+  color:var(--ink-2);min-height:34px}
+.chip.diet[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#fff}
+.chip.ex[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--ground);
+  text-decoration:line-through}
+
+/* ---------- hall cards ---------- */
+.tally{font-size:12.5px;color:var(--muted);margin:0 0 10px;font-variant-numeric:tabular-nums}
+.tally b{color:var(--ink);font-weight:600}
+.halls{display:grid;gap:10px}
+@media (min-width:680px){.halls{grid-template-columns:1fr 1fr;align-items:start}}
+.hall{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:var(--shadow);overflow:hidden}
+.hall > summary{cursor:pointer;list-style:none;padding:12px 13px;display:grid;
+  grid-template-columns:1fr auto;gap:2px 10px;align-items:start}
+.hall > summary::-webkit-details-marker{display:none}
+.hname{font-family:var(--f-display);font-weight:600;font-size:17.5px;letter-spacing:-.01em;
+  grid-column:1;line-height:1.15}
+.hconcept{grid-column:1;font-size:11.5px;color:var(--muted);letter-spacing:.01em}
+.hstat{grid-column:2;grid-row:1/span 2;text-align:right;font-size:11.5px;line-height:1.5}
+.pill{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;
+  text-transform:uppercase;padding:2.5px 7px;border-radius:99px;white-space:nowrap}
+.pill.open{background:var(--open);color:#fff}
+.pill.soon{background:var(--soon);color:#fff}
+.pill.shut{background:var(--surface-2);color:var(--closed);border:1px solid var(--line)}
+.hstat .when{color:var(--muted);display:block;margin-top:3px;font-variant-numeric:tabular-nums}
+.hstat .far{color:var(--ink-2);display:block;font-variant-numeric:tabular-nums;font-weight:600}
+.hmeta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;align-items:center}
+.tagbadge{font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:3px;
+  border:1px solid currentColor;text-transform:uppercase}
+.tagbadge.kosher{color:var(--kosher)} .tagbadge.vegetarian{color:var(--vegetarian)}
+.tagbadge["allergen-friendly"],.tagbadge.allergen{color:var(--halal)}
+.count{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.dishes{list-style:none;margin:0;padding:0;border-top:1px solid var(--line)}
+.dishes > li{border-top:1px solid var(--sunk)}
+.dishes > li:first-child{border-top:none}
+.dish > summary{cursor:pointer;list-style:none;padding:9px 13px;display:flex;gap:8px;
+  align-items:baseline;justify-content:space-between;min-height:40px}
+.dish > summary::-webkit-details-marker{display:none}
+.dish-n{font-weight:500;flex:1;min-width:0;overflow-wrap:anywhere;font-size:14.5px}
+.badges{display:flex;gap:3px;flex:0 0 auto}
+.b{font-size:9px;font-weight:700;letter-spacing:.04em;padding:1.5px 3.5px;border-radius:2px;
+  border:1px solid currentColor;line-height:1.3}
+.b.vg{color:var(--vegan)} .b.v{color:var(--vegetarian)} .b.gf{color:var(--gf)}
+.b.h{color:var(--halal)} .b.k{color:var(--kosher)}
+.detail{padding:0 13px 11px;font-size:12.5px;color:var(--ink-2)}
+.detail dt{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--muted);margin-top:7px}
+.detail dd{margin:2px 0 0}
+.detail .alg{color:var(--accent);font-weight:600}
+.only{font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--accent);margin-left:5px}
+
+/* ---------- compare ---------- */
+.cmp{overflow-x:auto;-webkit-overflow-scrolling:touch;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow)}
+.cmp table{border-collapse:collapse;min-width:100%;font-size:13px}
+.cmp th{position:sticky;top:0;background:var(--surface);text-align:left;padding:9px 11px;
+  border-bottom:2px solid var(--ink);font-family:var(--f-display);font-size:14px;
+  font-weight:600;white-space:nowrap;z-index:2}
+.cmp th small{display:block;font-family:var(--f-ui);font-size:10px;font-weight:500;
+  color:var(--muted);letter-spacing:.02em}
+.cmp td{padding:7px 11px;border-bottom:1px solid var(--sunk);vertical-align:top;
+  min-width:150px;max-width:230px}
+.cmp td b{font-weight:500;display:block}
+.cmp .cell-badges{margin-top:2px}
+.cmp tr:hover td{background:var(--sunk)}
+
+/* ---------- map ---------- */
+#map{height:min(62vh,440px);border-radius:var(--r);border:1px solid var(--line);
+  box-shadow:var(--shadow);background:var(--surface-2)}
+.maplegend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:11.5px;color:var(--muted);
+  margin-top:8px}
+.maplegend i{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:5px}
+.mapfallback{padding:20px 16px;text-align:center;color:var(--muted);font-size:13px}
+
+.empty{padding:30px 16px;text-align:center;color:var(--muted);background:var(--surface);
+  border:1px dashed var(--line);border-radius:var(--r)}
+.empty b{display:block;color:var(--ink);font-family:var(--f-display);font-size:16px;
+  margin-bottom:4px}
+.stale{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);
+  padding:9px 12px;margin-bottom:11px;font-size:12.5px}
+footer{margin-top:24px;padding-top:13px;border-top:1px solid var(--line);font-size:11.5px;
+  color:var(--muted)}
+footer p{margin:5px 0}
+footer a{color:var(--accent)}
+.hidden{display:none!important}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Stanford <span class="red">Dining</span></h1>
+    <div class="meta">
+      <span id="freshness">loading…</span>
+      <a href="https://rdeapps.stanford.edu/dininghallmenu/Menu.aspx" target="_blank" rel="noopener">menus</a>
+      <a href="https://rde.stanford.edu/dining-hospitality/dining-locations-hours" target="_blank" rel="noopener">hours</a>
+    </div>
+  </header>
+
+  <div class="rail">
+    <div class="scroller" id="days"></div>
+    <div class="seg" id="meals"></div>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Search dishes or ingredients" autocomplete="off">
+      <button class="iconbtn" id="btn-filters" type="button" aria-pressed="false">Filters</button>
+      <button class="iconbtn" id="btn-near" type="button">Near me</button>
+    </div>
+    <div class="seg" id="views" style="margin-top:7px"></div>
+  </div>
+
+  <div class="drawer hidden" id="drawer"></div>
+  <div id="stale"></div>
+  <p class="tally" id="tally"></p>
+
+  <div id="view-halls"><div class="halls" id="halls"></div></div>
+  <div id="view-compare" class="hidden"></div>
+  <div id="view-map" class="hidden">
+    <div id="map"></div>
+    <div class="maplegend">
+      <span><i style="background:var(--open)"></i>serving now</span>
+      <span><i style="background:var(--soon)"></i>opens soon</span>
+      <span><i style="background:var(--closed)"></i>closed for this meal</span>
+      <span><i style="background:var(--accent)"></i>you</span>
+    </div>
+  </div>
+
+  <footer>
+    <p id="gaps"></p>
+    <p><strong>Allergens.</strong> Ingredient and allergen data comes from Stanford R&amp;DE
+      and changes without notice. R&amp;DE cannot guarantee the absence of allergens in its
+      food or facilities — do not rely on this page for a medically significant allergy.</p>
+    <p id="hoursnote"></p>
+    <p>Unofficial student project. Not affiliated with or endorsed by Stanford University.
+      Map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.</p>
+  </footer>
+</div>
+
+<script>
+const TAGS={vg:['Vegan','vg'],v:['Vegetarian','v'],gf:['Gluten-free','gf'],h:['Halal','h'],k:['Kosher','k']};
+const TAG_COLOR={vg:'var(--vegan)',v:'var(--vegetarian)',gf:'var(--gf)',h:'var(--halal)',k:'var(--kosher)'};
+const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const S={data:null,day:0,meal:0,view:'halls',diets:new Set(),exclude:new Set(),q:'',
+         here:null,openOnly:false};
+let map=null,markers=[],youMarker=null;
+
+const el=(t,c,txt)=>{const n=document.createElement(t);if(c)n.className=c;
+  if(txt!=null)n.textContent=txt;return n;};
+const parseDay=s=>{const[m,d,y]=s.split('/').map(Number);return new Date(y,m-1,d);};
+const hm=s=>{const[h,m]=s.split(':').map(Number);return h*60+m;};
+const fmt=mins=>{const h=Math.floor(mins/60)%24,m=mins%60;
+  const ap=h>=12?'pm':'am';const h12=h%12===0?12:h%12;
+  return m?`${h12}:${String(m).padStart(2,'0')}${ap}`:`${h12}${ap}`;};
+
+function haversine(a,b){const R=6371000,tr=d=>d*Math.PI/180;
+  const dLat=tr(b[0]-a[0]),dLon=tr(b[1]-a[1]);
+  const x=Math.sin(dLat/2)**2+Math.cos(tr(a[0]))*Math.cos(tr(b[0]))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));}
+
+/** Serving window for a hall on a given date and meal, in minutes from midnight. */
+function windowFor(hall,date,mealName){
+  if(!hall.hours)return null;
+  const wk=(date.getDay()===0||date.getDay()===6)?'weekend':'weekday';
+  const set=hall.hours[wk]||{};
+  const w=set[mealName];
+  return w?[hm(w[0]),hm(w[1])]:null;
+}
+
+/** open | soon | shut, plus a human phrase. Only meaningful for today. */
+function statusFor(hall,date,mealName){
+  const w=windowFor(hall,date,mealName);
+  if(!w)return{k:'shut',txt:'not served'};
+  const today=new Date();today.setHours(0,0,0,0);
+  const isToday=date.getTime()===today.getTime();
+  if(!isToday)return{k:'shut',txt:`${fmt(w[0])}–${fmt(w[1])}`,neutral:true};
+  const now=new Date().getHours()*60+new Date().getMinutes();
+  if(now>=w[0]&&now<=w[1]){
+    const left=w[1]-now;
+    return{k:'open',txt:left<=30?`closes in ${left} min`:`until ${fmt(w[1])}`};
+  }
+  if(now<w[0]){
+    const until=w[0]-now;
+    return until<=60?{k:'soon',txt:`opens in ${until} min`}
+                    :{k:'shut',txt:`opens ${fmt(w[0])}`};
+  }
+  return{k:'shut',txt:`closed ${fmt(w[1])}`};
+}
+
+function dishMatches(x){
+  for(const t of S.diets)if(!x.t.includes(t))return false;
+  if(S.exclude.size){const own=x.a.toUpperCase();
+    for(const a of S.exclude)if(own.includes(a))return false;}
+  if(S.q&&!(x.n+' '+x.i).toLowerCase().includes(S.q))return false;
+  return true;
+}
+
+/** Halls serving the chosen meal, with their matching dishes, sorted sensibly. */
+function currentHalls(){
+  const d=S.data,date=parseDay(d.days[S.day]),mealName=d.meals[S.meal];
+  const rows=[];
+  d.halls.forEach((h,hi)=>{
+    const refs=d.menus[`${hi}|${S.day}|${S.meal}`];
+    if(!refs||!refs.length)return;
+    const items=refs.map(i=>d.dishes[i]);
+    const matched=items.filter(dishMatches);
+    const st=statusFor(h,date,mealName);
+    const dist=(S.here&&h.coords)?haversine(S.here,h.coords):null;
+    rows.push({hall:h,hi,items,matched,total:refs.length,st,dist});
+  });
+  const rank={open:0,soon:1,shut:2};
+  rows.sort((a,b)=>(rank[a.st.k]-rank[b.st.k])
+    ||((a.dist??1e9)-(b.dist??1e9))
+    ||a.hall.name.localeCompare(b.hall.name));
+  return rows;
+}
+
+function dishNode(x,uniqueAt){
+  const li=el('li'),det=el('details','dish'),sum=el('summary');
+  const n=el('span','dish-n');n.textContent=x.n;
+  if(uniqueAt)n.append(el('span','only','only here'));
+  sum.append(n);
+  const bg=el('span','badges');
+  x.t.forEach(t=>{if(TAGS[t])bg.append(el('span','b '+t,TAGS[t][1]));});
+  sum.append(bg);det.append(sum);
+  const dl=el('dl','detail');
+  if(x.i){dl.append(el('dt',null,'Ingredients'),el('dd',null,x.i));}
+  if(x.a){const dd=el('dd');dd.append(el('span','alg',x.a.toLowerCase()));
+    dl.append(el('dt',null,'Contains'),dd);}
+  if(x.x){dl.append(el('dt',null,'Shared equipment with'),el('dd',null,x.x.toLowerCase()));}
+  if(!x.i&&!x.a&&!x.x)dl.append(el('dd',null,'No ingredient detail published.'));
+  det.append(dl);li.append(det);return li;
+}
+
+function renderHalls(rows){
+  const box=document.getElementById('halls');box.replaceChildren();
+  // a dish name appearing at exactly one hall this meal is worth flagging
+  const freq={};
+  rows.forEach(r=>new Set(r.matched.map(x=>x.n)).forEach(n=>freq[n]=(freq[n]||0)+1));
+  const shown=rows.filter(r=>r.matched.length&&(!S.openOnly||r.st.k==='open'));
+  shown.forEach((r,idx)=>{
+    const card=el('details','hall');
+    if(idx<2||shown.length<=3)card.open=true;
+    const sum=el('summary');
+    sum.append(el('div','hname',r.hall.name));
+    if(r.hall.concept&&r.hall.concept!==r.hall.name)
+      sum.append(el('div','hconcept',r.hall.concept));
+    const stat=el('div','hstat');
+    stat.append(el('span','pill '+(r.st.k==='open'?'open':r.st.k==='soon'?'soon':'shut'),
+      r.st.k==='open'?'serving':r.st.k==='soon'?'soon':(r.st.neutral?'hours':'closed')));
+    stat.append(el('span','when',r.st.txt));
+    if(r.dist!=null)stat.append(el('span','far',
+      r.dist>=1000?`${(r.dist/1000).toFixed(1)} km`:`${Math.round(r.dist)} m`));
+    sum.append(stat);
+    const meta=el('div','hmeta');
+    if(r.hall.specialty)meta.append(el('span','tagbadge '+
+      (r.hall.specialty==='allergen-friendly'?'allergen':r.hall.specialty),r.hall.specialty));
+    meta.append(el('span','count',
+      r.matched.length===r.total?`${r.total} dishes`:`${r.matched.length} of ${r.total} dishes`));
+    if(r.hall.latenight)meta.append(el('span','count',
+      `· ${r.hall.latenight.label} ${r.hall.latenight.days} ${fmt(hm(r.hall.latenight.hours[0]))}`));
+    sum.append(meta);
+    card.append(sum);
+    const ul=el('ul','dishes');
+    r.matched.forEach(x=>ul.append(dishNode(x,freq[x.n]===1&&rows.length>1)));
+    card.append(ul);box.append(card);
+  });
+  if(!shown.length){
+    const e=el('div','empty');
+    e.append(el('b',null,rows.length?'Nothing matches':'Nothing served'));
+    e.append(document.createTextNode(rows.length
+      ?'Loosen a filter, clear the search, or turn off “open now”.'
+      :'No hall publishes this meal on this day.'));
+    box.append(e);
+  }
+}
+
+function renderCompare(rows){
+  const v=document.getElementById('view-compare');v.replaceChildren();
+  const cols=rows.filter(r=>r.matched.length&&(!S.openOnly||r.st.k==='open'));
+  if(!cols.length){const e=el('div','empty');e.append(el('b',null,'Nothing to compare'));
+    v.append(e);return;}
+  const box=el('div','cmp'),t=el('table'),thead=el('thead'),tr=el('tr');
+  cols.forEach(r=>{const th=el('th');th.append(document.createTextNode(r.hall.name));
+    const s=el('small');
+    s.textContent=[r.st.k==='open'?'serving':r.st.txt,
+      r.dist!=null?(r.dist>=1000?`${(r.dist/1000).toFixed(1)} km`:`${Math.round(r.dist)} m`):null]
+      .filter(Boolean).join(' · ');
+    th.append(s);tr.append(th);});
+  thead.append(tr);t.append(thead);
+  const tb=el('tbody'),depth=Math.max(...cols.map(r=>r.matched.length));
+  for(let i=0;i<depth;i++){
+    const row=el('tr');
+    cols.forEach(r=>{const td=el('td'),x=r.matched[i];
+      if(x){td.append(el('b',null,x.n));
+        const bg=el('div','cell-badges');
+        x.t.forEach(tg=>{if(TAGS[tg])bg.append(el('span','b '+tg,TAGS[tg][1]));});
+        td.append(bg);}
+      row.append(td);});
+    tb.append(row);
+  }
+  t.append(tb);box.append(t);v.append(box);
+  const hint=el('p','tally');
+  hint.textContent='Scroll sideways to see every hall. Each column is one hall’s menu for this meal.';
+  v.append(hint);
+}
+
+function renderMap(rows){
+  if(!window.L){document.getElementById('map').innerHTML=
+    '<div class="mapfallback">Map library did not load. The Halls tab still shows distances.</div>';
+    return;}
+  const d=S.data;
+  if(!map){
+    map=L.map('map',{scrollWheelZoom:false}).setView([37.4253,-122.1697],15);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+    // If tiles are blocked (strict CSP hosts), say so rather than showing a grey box.
+    setTimeout(()=>{
+      if(!document.querySelector('#map .leaflet-tile-loaded')){
+        const note=document.createElement('div');
+        note.className='mapfallback';
+        note.style.cssText='position:absolute;inset:0;display:grid;place-items:center;'+
+          'background:var(--surface);z-index:500';
+        note.textContent='Map tiles are blocked on this host. Open the published site for the map; '+
+          'the Halls tab shows distances either way.';
+        document.getElementById('map').append(note);
+      }
+    },3500);
+  }
+  markers.forEach(m=>map.removeLayer(m));markers=[];
+  rows.forEach(r=>{
+    if(!r.hall.coords)return;
+    const col=r.st.k==='open'?'var(--open)':r.st.k==='soon'?'var(--soon)':'var(--closed)';
+    const m=L.marker(r.hall.coords,{icon:L.divIcon({className:'',
+      html:`<div class="leaflet-pin" style="width:15px;height:15px;background:${col}"></div>`,
+      iconSize:[15,15],iconAnchor:[7,7]})}).addTo(map);
+    const dist=r.dist!=null?(r.dist>=1000?`${(r.dist/1000).toFixed(1)} km away`
+      :`${Math.round(r.dist)} m away`):'';
+    m.bindPopup(`<b>${r.hall.name}</b><br>${r.st.k==='open'?'Serving now':''} ${r.st.txt}`+
+      `<br>${r.matched.length} of ${r.total} dishes${dist?'<br>'+dist:''}`+
+      (r.hall.coords_approximate?'<br><em>approximate location</em>':'')+
+      `<br><a href="https://www.google.com/maps/dir/?api=1&destination=${r.hall.coords[0]},${r.hall.coords[1]}" target="_blank" rel="noopener">directions</a>`);
+    markers.push(m);
+  });
+  if(S.here){
+    if(youMarker)map.removeLayer(youMarker);
+    youMarker=L.circleMarker(S.here,{radius:6,color:'var(--accent)',fillColor:'var(--accent)',
+      fillOpacity:.9,weight:2}).addTo(map).bindPopup('You are here');
+    markers.push(youMarker);
+  }
+  setTimeout(()=>map.invalidateSize(),60);
+}
+
+function buildControls(){
+  const d=S.data,today=new Date();today.setHours(0,0,0,0);
+  const days=document.getElementById('days');days.replaceChildren();
+  d.days.forEach((ds,i)=>{
+    const dt=parseDay(ds),isToday=dt.getTime()===today.getTime();
+    const b=el('button','day');b.type='button';
+    b.append(el('small',null,isToday?'Today':DOW[dt.getDay()]),
+             el('b',null,`${dt.getMonth()+1}/${dt.getDate()}`));
+    b.setAttribute('aria-pressed',String(i===S.day));
+    b.onclick=()=>{S.day=i;render();};
+    days.append(b);
+  });
+  const meals=document.getElementById('meals');meals.replaceChildren();
+  d.meals.forEach((m,i)=>{const b=el('button',null,m);b.type='button';
+    b.setAttribute('aria-pressed',String(i===S.meal));
+    b.onclick=()=>{S.meal=i;render();};meals.append(b);});
+  const views=document.getElementById('views');views.replaceChildren();
+  [['halls','Halls'],['compare','Compare'],['map','Map']].forEach(([k,label])=>{
+    const b=el('button',null,label);b.type='button';
+    b.setAttribute('aria-pressed',String(S.view===k));
+    b.onclick=()=>{S.view=k;render();};views.append(b);});
+}
+
+function buildDrawer(){
+  const d=S.data,dr=document.getElementById('drawer');dr.replaceChildren();
+  dr.append(el('h3',null,'Show only'));
+  const c1=el('div','chips');
+  const on=el('button','chip');on.type='button';on.textContent='Open now';
+  on.setAttribute('aria-pressed',String(S.openOnly));
+  on.style.setProperty('--c','var(--open)');on.classList.add('diet');
+  on.onclick=()=>{S.openOnly=!S.openOnly;render();};
+  c1.append(on);
+  Object.entries(TAGS).forEach(([code,[label]])=>{
+    if(!d.dishes.some(x=>x.t.includes(code)))return;
+    const b=el('button','chip diet',label);b.type='button';
+    b.style.setProperty('--c',TAG_COLOR[code]);
+    b.setAttribute('aria-pressed',String(S.diets.has(code)));
+    b.onclick=()=>{S.diets.has(code)?S.diets.delete(code):S.diets.add(code);render();};
+    c1.append(b);});
+  dr.append(c1);
+  dr.append(el('h3',null,'Exclude allergen'));
+  const c2=el('div','chips');
+  d.allergens.forEach(a=>{const b=el('button','chip ex',a.toLowerCase());b.type='button';
+    b.setAttribute('aria-pressed',String(S.exclude.has(a)));
+    b.onclick=()=>{S.exclude.has(a)?S.exclude.delete(a):S.exclude.add(a);render();};
+    c2.append(b);});
+  dr.append(c2);
+  const clear=el('button','chip','Clear all filters');clear.type='button';
+  clear.style.marginTop='11px';
+  clear.onclick=()=>{S.diets.clear();S.exclude.clear();S.openOnly=false;S.q='';
+    document.getElementById('q').value='';render();};
+  dr.append(clear);
+}
+
+function render(){
+  buildControls();buildDrawer();
+  const rows=currentHalls();
+  const shown=rows.filter(r=>r.matched.length&&(!S.openOnly||r.st.k==='open'));
+  const dishes=shown.reduce((n,r)=>n+r.matched.length,0);
+  const openNow=rows.filter(r=>r.st.k==='open').length;
+  const t=document.getElementById('tally');t.replaceChildren();
+  t.append(el('b',null,String(dishes)),
+    document.createTextNode(` dishes · `),
+    el('b',null,String(shown.length)),
+    document.createTextNode(` hall${shown.length===1?'':'s'}`),
+    document.createTextNode(openNow?` · ${openNow} serving now`:''));
+
+  document.getElementById('view-halls').classList.toggle('hidden',S.view!=='halls');
+  document.getElementById('view-compare').classList.toggle('hidden',S.view!=='compare');
+  document.getElementById('view-map').classList.toggle('hidden',S.view!=='map');
+  if(S.view==='halls')renderHalls(rows);
+  else if(S.view==='compare')renderCompare(rows);
+  else renderMap(rows);
+}
+
+function boot(d){
+  S.data=d;
+  const h=new Date().getHours()+new Date().getMinutes()/60;
+  const want=h<10.5?'Breakfast':h<16?'Lunch':'Dinner';
+  S.meal=Math.max(0,d.meals.indexOf(want));
+  const today=new Date();today.setHours(0,0,0,0);
+  const ti=d.days.findIndex(x=>parseDay(x).getTime()===today.getTime());
+  S.day=ti<0?0:ti;
+
+  const when=new Date(d.scraped_at);
+  const hoursOld=(Date.now()-when.getTime())/3.6e6;
+  document.getElementById('freshness').textContent='menus read '+
+    when.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+  if(ti<0||hoursOld>36){
+    const w=el('div','stale');
+    w.textContent=ti<0
+      ?`These menus were read ${when.toLocaleDateString()} and no longer cover today.`
+      :`These menus are ${Math.floor(hoursOld)} hours old; R&DE may have changed them since.`;
+    document.getElementById('stale').append(w);
+  }
+  document.getElementById('gaps').textContent=
+    'Coverage: EVGR publishes no menu through this source. Weekend meals are filed under '+
+    'Lunch (R&DE serves them as brunch, 9:30–13:30 at Arrillaga and Lakeside, 10:30–13:30 '+
+    'elsewhere). Gerhard Casper and Branner serve lunch and dinner only.';
+  document.getElementById('hoursnote').textContent=d.hours_note||'';
+
+  document.getElementById('q').addEventListener('input',e=>{
+    S.q=e.target.value.trim().toLowerCase();render();});
+  document.getElementById('btn-filters').onclick=e=>{
+    const dr=document.getElementById('drawer');
+    const openNow=dr.classList.toggle('hidden');
+    e.currentTarget.setAttribute('aria-pressed',String(!openNow));};
+  document.getElementById('btn-near').onclick=e=>{
+    const btn=e.currentTarget;
+    if(!navigator.geolocation){btn.textContent='No GPS';return;}
+    btn.textContent='Locating…';
+    navigator.geolocation.getCurrentPosition(p=>{
+      S.here=[p.coords.latitude,p.coords.longitude];
+      btn.textContent='Near me';btn.classList.add('on');render();},
+      ()=>{btn.textContent='Location off';},
+      {enableHighAccuracy:true,timeout:15000,maximumAge:60000});};
+  render();
+  setInterval(render,60000);   // keep "closes in N min" honest
+}
+
+fetch('data/site.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+  .then(boot).catch(err=>{
+    document.getElementById('freshness').textContent='menu data failed to load';
+    const e=el('div','empty');e.append(el('b',null,'Menu data did not load'));
+    e.append(document.createTextNode(String(err.message)));
+    document.getElementById('halls').append(e);});
+if('serviceWorker' in navigator)
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
