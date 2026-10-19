@@ -5,9 +5,10 @@
  * useful, but a stale menu shown while online would be a lie — and the page's own
  * freshness banner only helps if the data it reports is the data it fetched.
  */
-const VERSION = 'dining-v5';
+const VERSION = 'dining-v6';
 const SHELL = [
-  './', './index.html', './manifest.webmanifest', './cafes-logic.js', './saved-logic.js', './url-state.js',
+  './', './index.html', './manifest.webmanifest', './cafes-logic.js', './libraries-logic.js',
+  './saved-logic.js', './url-state.js',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
 ];
 

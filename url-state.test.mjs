@@ -45,6 +45,8 @@ console.log('\n3. untrusted values are dropped, not carried');
   check('unknown view falls back to halls', r.view === 'halls', r.view);
 }
 check('known view kept', U.parse('#v=compare', data, now).view === 'compare');
+check('libraries is a known view', U.parse('#v=libraries', data, now).view === 'libraries',
+  'added with the library-hours section; a shared link to it must survive a reload');
 check('search is trimmed, lowercased and capped',
   U.parse('#q=' + encodeURIComponent('  ToFu  '), data, now).q === 'tofu');
 check('absurdly long query is capped',
