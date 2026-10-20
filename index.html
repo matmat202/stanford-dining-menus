@@ -260,6 +260,17 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
   margin-bottom:4px}
 .stale{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--r);
   padding:9px 12px;margin-bottom:11px;font-size:12.5px}
+/* Embed section. No pre/code styles existed on this page, so an unstyled <pre> would
+   have rendered in the browser default at a size nobody chose — the same class of defect
+   as a class name copied from another project. Colours come from the page's own tokens so
+   it follows the theme rather than asserting its own. */
+#embed{margin-top:26px;padding-top:16px;border-top:1px solid var(--line)}
+#embed h2{font-family:var(--f-display);font-weight:600;font-size:17px;margin:0 0 8px}
+#embed p{margin:8px 0;font-size:13.5px;line-height:1.6}
+#embed pre{margin:10px 0;padding:11px 13px;border:1px solid var(--line);border-radius:5px;
+  overflow-x:auto;font-size:12px;line-height:1.55}
+#embed code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.95em}
+#embed .embed-opts{font-size:12.5px;opacity:.85}
 footer{margin-top:24px;padding-top:13px;border-top:1px solid var(--line);font-size:11.5px;
   color:var(--muted)}
 footer p{margin:5px 0}
@@ -321,6 +332,25 @@ footer a{color:var(--accent)}
     </div>
   </div>
 
+  <!-- Embed section. The widget is published from this site so any other page can use
+       it, and shown working here so the snippet is not a promise. One real instance,
+       not a screenshot: a code sample nobody has run is how a README lies. -->
+  <section id="embed">
+    <h2>Put this on your own page</h2>
+    <p>This site publishes its menu feed and a drop-in widget, so a dorm page, club site or
+      department intranet can show a dining hall without scraping R&amp;DE. Two lines:</p>
+    <pre><code>&lt;div data-stanford-dining="Arrillaga"&gt;&lt;/div&gt;
+&lt;script src="https://matmat202.github.io/stanford-dining-menus/widget.js" defer&gt;&lt;/script&gt;</code></pre>
+    <p>Which renders, live, right here:</p>
+    <div data-stanford-dining="Arrillaga" data-src="data/site.json" data-limit="5"></div>
+    <p class="embed-opts">Options: <code>data-meal</code>,
+      <code>data-diet</code> (<code>vg v gf h k</code>), <code>data-limit</code>
+      (default 8, <code>0</code> for all), <code>data-theme</code>, <code>data-src</code>.
+      Halls by id or display name, case-insensitive. It shows <em>Stanford's</em> today, not
+      the reader's, so an embed read from another timezone still says the right thing — and
+      when it has nothing it says why rather than showing another day's menu.</p>
+  </section>
+
   <footer>
     <p id="gaps"></p>
     <p><strong>Allergens.</strong> Ingredient and allergen data comes from Stanford R&amp;DE
@@ -332,6 +362,7 @@ footer a{color:var(--accent)}
   </footer>
 </div>
 
+<script src="widget.js" defer></script>
 <script>
 const TAGS={vg:['Vegan','vg'],v:['Vegetarian','v'],gf:['Gluten-free','gf'],h:['Halal','h'],k:['Kosher','k']};
 const TAG_COLOR={vg:'var(--vegan)',v:'var(--vegetarian)',gf:'var(--gf)',h:'var(--halal)',k:'var(--kosher)'};
