@@ -15,6 +15,7 @@
 <script src="cafes-logic.js"></script>
 <script src="libraries-logic.js"></script>
 <script src="saved-logic.js"></script>
+<script src="allergen-check.js"></script>
 <script src="url-state.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
@@ -175,6 +176,8 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
   border:1px solid currentColor;line-height:1.3}
 .b.vg{color:var(--vegan)} .b.v{color:var(--vegetarian)} .b.gf{color:var(--gf)}
 .b.h{color:var(--halal)} .b.k{color:var(--kosher)}
+.b.warn{color:var(--soon)}
+.detail .chk{color:var(--soon);font-weight:600}
 .detail{padding:0 13px 11px;font-size:12.5px;color:var(--ink-2)}
 .detail dt{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
   color:var(--muted);margin-top:7px}
@@ -322,6 +325,7 @@ footer a{color:var(--accent)}
   <div id="view-compare" class="hidden"></div>
   <div id="view-cafes" class="hidden"></div>
   <div id="view-libraries" class="hidden"></div>
+  <div id="view-rec" class="hidden"></div>
   <div id="view-map" class="hidden">
     <div id="map"></div>
     <div class="maplegend">
@@ -368,7 +372,7 @@ const TAGS={vg:['Vegan','vg'],v:['Vegetarian','v'],gf:['Gluten-free','gf'],h:['H
 const TAG_COLOR={vg:'var(--vegan)',v:'var(--vegetarian)',gf:'var(--gf)',h:'var(--halal)',k:'var(--kosher)'};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const S={data:null,day:0,meal:0,view:'halls',diets:new Set(),exclude:new Set(),q:'',
-         here:null,openOnly:false,cafes:null,libraries:null,saved:new Set(),savedIndex:null};
+         here:null,openOnly:false,cafes:null,libraries:null,rec:null,saved:new Set(),savedIndex:null};
 let map=null,markers=[],youMarker=null;
 
 const el=(t,c,txt)=>{const n=document.createElement(t);if(c)n.className=c;
@@ -471,11 +475,21 @@ function dishNode(x,uniqueAt){
   sum.append(n);
   const bg=el('span','badges');
   x.t.forEach(t=>{if(TAGS[t])bg.append(el('span','b '+t,TAGS[t][1]));});
+  // Never hidden, only marked: the ingredient check is ~2/3 precise, and its false
+  // positives sit at the allergy-friendly stations (allergen-check.js).
+  const w=window.AllergenCheck.warnFor(x,S.exclude);
+  if(w.noData)bg.append(el('span','b warn','no allergen data'));
+  else if(w.hits.length)bg.append(el('span','b warn','check '+w.hits.map(h=>h.allergen.toLowerCase()).join(', ')));
   sum.append(bg);det.append(sum);
   const dl=el('dl','detail');
   if(x.i){dl.append(el('dt',null,'Ingredients'),el('dd',null,x.i));}
   if(x.a){const dd=el('dd');dd.append(el('span','alg',x.a.toLowerCase()));
     dl.append(el('dt',null,'Contains'),dd);}
+  const un=window.AllergenCheck.untagged(x);
+  if(un.length){const dd=el('dd');
+    un.forEach((h,k)=>{if(k)dd.append('; ');
+      dd.append('mentions \u201c'+h.phrase+'\u201d, ',el('span','chk','not tagged '+h.allergen.toLowerCase()));});
+    dl.append(el('dt',null,'Ingredients vs tags'),dd);}
   if(x.x){dl.append(el('dt',null,'Shared equipment with'),el('dd',null,x.x.toLowerCase()));}
   if(!x.i&&!x.a&&!x.x)dl.append(el('dd',null,'No ingredient detail published.'));
   det.append(dl);li.append(det);return li;
@@ -796,6 +810,80 @@ function renderLibraries(){
   v.append(note);
 }
 
+/* Rec facilities publish recurring weekday windows, the same shape as the cafés, so
+   scrape_rec.py writes that shape and this reuses venueStatus rather than a third copy
+   of open-now reasoning. Two things the cafés do not have: access-restricted shifts
+   (Youth and Family Access), which are listed but never make a facility read open, and
+   cells the source got wrong ("11:00 PM - 8:00 PM"), which the scraper refuses to turn
+   into hours. On such a day the card says so instead of claiming "closed". */
+function renderRec(){
+  const v=document.getElementById('view-rec');v.replaceChildren();
+  const data=S.rec;
+  if(!data){const e=el('div','empty');e.append(el('b',null,'Rec hours not loaded'));
+    e.append(document.createTextNode('This section needs data/rec.json.'));v.append(e);return;}
+
+  const now=new Date();
+  const todayShort=window.CafeLogic.DOW_SHORT[window.CafeLogic.jsDayToIdx(now.getDay())];
+  const rows=data.venues.map(x=>({...x,st:venueStatus(x.windows,now),
+    late:x.windows.some(isLate),
+    unclear:(x.suspect||[]).some(s=>s.startsWith(todayShort+':'))}));
+  rows.sort((a,b)=>(b.st.open-a.st.open)||(b.late-a.late)||a.name.localeCompare(b.name));
+
+  const openNow=rows.filter(r=>r.st.open).length;
+  const lede=el('p','tally');
+  lede.append(el('b',null,String(openNow)),
+    document.createTextNode(` of ${rows.length} rec facilities open now`));
+  v.append(lede);
+  if(!data.season_current){
+    const w=el('div','stale');
+    w.textContent=`No season on rec.stanford.edu covers today; showing ${data.season} `
+      +`(${data.season_start} to ${data.season_end}), the latest one published.`;
+    v.append(w);
+  }
+
+  rows.forEach(r=>{
+    const card=el('div','venue');
+    const h=el('h3');h.append(document.createTextNode(r.name));
+    const right=el('span','badges');
+    if(r.late)right.append(el('span','latebadge','late'));
+    const shut=r.unclear?'unclear':'closed';
+    right.append(el('span','pill '+(r.st.open?'open':'shut'),r.st.open?'open':shut));
+    h.append(right);card.append(h);
+    if(r.st.open&&r.st.until)card.append(el('div','desc',`Open until ${r.st.until}`));
+    else if(r.unclear)card.append(el('div','desc','Today\u2019s published hours do not parse; see below.'));
+    else if(r.st.opensAt)card.append(el('div','desc',`Opens ${r.st.opensAt}`));
+    if(r.note)card.append(el('div','desc',r.note));
+    const ul=el('ul');
+    r.windows.forEach(w=>{
+      const li=el('li');
+      li.append(el('span','dow',daysLabel(w.days)));
+      li.append(el('span','span',`${fmt12(w.open)} – ${fmt12(w.close)}`));
+      ul.append(li);
+    });
+    (r.restricted||[]).forEach(w=>{
+      const li=el('li');
+      li.append(el('span','dow',daysLabel(w.days)));
+      li.append(el('span','span',`${fmt12(w.open)} – ${fmt12(w.close)} · ${w.note} only`));
+      ul.append(li);
+    });
+    if(!r.windows.length&&!(r.restricted||[]).length){
+      const li=el('li');li.append(el('span','span','Closed all week'));ul.append(li);}
+    card.append(ul);
+    if(r.suspect&&r.suspect.length){
+      const vb=el('div','verbatim');
+      vb.textContent='Published as-is, not read as hours: '+r.suspect.join(' · ');
+      card.append(vb);
+    }
+    v.append(card);
+  });
+
+  const note=el('p','tally');
+  note.textContent=`${data.season}, ${data.season_start} to ${data.season_end}, from `
+    +'rec.stanford.edu/visit/facility-hours. Holiday closures are not in that table; '
+    +'check the source before a long weekend.';
+  v.append(note);
+}
+
 function buildControls(){
   const d=S.data,today=new Date();today.setHours(0,0,0,0);
   const days=document.getElementById('days');days.replaceChildren();
@@ -814,7 +902,7 @@ function buildControls(){
     b.onclick=()=>{S.meal=i;render();};meals.append(b);});
   const views=document.getElementById('views');views.replaceChildren();
   [['halls','Halls'],['compare','Compare'],['map','Map'],['cafes','Cafés'],
-   ['libraries','Libraries']].forEach(([k,label])=>{
+   ['libraries','Libraries'],['rec','Rec']].forEach(([k,label])=>{
     const b=el('button',null,label);b.type='button';
     b.setAttribute('aria-pressed',String(S.view===k));
     b.onclick=()=>{S.view=k;render();};views.append(b);});
@@ -880,12 +968,14 @@ function render(){
   document.getElementById('view-compare').classList.toggle('hidden',S.view!=='compare');
   document.getElementById('view-cafes').classList.toggle('hidden',S.view!=='cafes');
   document.getElementById('view-libraries').classList.toggle('hidden',S.view!=='libraries');
+  document.getElementById('view-rec').classList.toggle('hidden',S.view!=='rec');
   document.getElementById('view-map').classList.toggle('hidden',S.view!=='map');
   document.getElementById('saved-panel').classList.toggle('hidden',S.view!=='halls');
   if(S.view==='halls'){renderSaved();renderHalls(rows);}
   else if(S.view==='compare')renderCompare(rows);
   else if(S.view==='cafes')renderCafes();
   else if(S.view==='libraries')renderLibraries();
+  else if(S.view==='rec')renderRec();
   else renderMap(rows);
 }
 
@@ -974,6 +1064,8 @@ fetch('data/cafes.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.cafes=c;if(S.data&&S.view==='cafes')renderCafes();}).catch(()=>{});
 fetch('data/libraries.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.libraries=c;if(S.data&&S.view==='libraries')renderLibraries();}).catch(()=>{});
+fetch('data/rec.json').then(r=>r.ok?r.json():null)
+  .then(c=>{S.rec=c;if(S.data&&S.view==='rec')renderRec();}).catch(()=>{});
 
 fetch('data/site.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
   .then(boot).catch(err=>{

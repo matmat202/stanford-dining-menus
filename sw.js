@@ -4,11 +4,14 @@
  * Menu data is network-first with a cache fallback: a stale menu shown offline is
  * useful, but a stale menu shown while online would be a lie — and the page's own
  * freshness banner only helps if the data it reports is the data it fetched.
+ * The page's own scripts are network-first too: index.html always was, and a fresh page
+ * running the previous deploy's cached url-state.js / cafes-logic.js is version skew
+ * (sw.test.mjs). Only icons and the manifest, which nothing else depends on, are cache-first.
  */
-const VERSION = 'dining-v6';
+const VERSION = 'dining-v8';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './cafes-logic.js', './libraries-logic.js',
-  './saved-logic.js', './url-state.js',
+  './saved-logic.js', './url-state.js', './allergen-check.js',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
 ];
 
@@ -35,10 +38,11 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;   // let the CDN and tiles pass through
 
-  const isData = url.pathname.endsWith('site.json');
+  const isData = /\/data\/[^/]+\.json$/.test(url.pathname);
   const isDoc = req.mode === 'navigate' || url.pathname.endsWith('index.html');
+  const isCode = url.pathname.endsWith('.js');
 
-  if (isData || isDoc) {
+  if (isData || isDoc || isCode) {
     e.respondWith(
       fetch(req)
         .then(res => {

@@ -11,7 +11,7 @@
  */
 (function (root) {
   const DIETS = ['vg', 'v', 'gf', 'h', 'k'];
-  const VIEWS = ['halls', 'compare', 'map', 'cafes', 'libraries'];
+  const VIEWS = ['halls', 'compare', 'map', 'cafes', 'libraries', 'rec'];
 
   const pad = n => String(n).padStart(2, '0');
 
