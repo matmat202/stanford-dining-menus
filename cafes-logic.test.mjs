@@ -79,5 +79,26 @@ console.log('\n6. against the real scraped data');
   check('nothing open at 4am Wednesday', fourAm.length === 0, fourAm.join(', '));
 }
 
+// campusDate: the page's clock is Stanford's whatever the viewer's timezone. Run with
+// the viewer on this machine's own zone, an hour ahead of PDT and two ahead of PST.
+{
+  const prev = process.env.TZ;
+  for (const tz of ['America/Monterrey', 'America/New_York', 'Asia/Tokyo', 'America/Los_Angeles']) {
+    process.env.TZ = tz;
+    const pdt = L.campusDate(new Date('2026-10-21T03:30:00Z'));   // Tue 20:30 PDT
+    check(`campusDate PDT under ${tz}`, pdt.getDay() === 2 && pdt.getDate() === 20
+      && pdt.getHours() === 20 && pdt.getMinutes() === 30, pdt.toString());
+    const pst = L.campusDate(new Date('2026-11-03T07:59:00Z'));   // Mon 23:59 PST
+    check(`campusDate PST under ${tz}`, pst.getDay() === 1 && pst.getDate() === 2
+      && pst.getHours() === 23 && pst.getMinutes() === 59, pst.toString());
+    // Arrillaga-shaped dinner 17:00-20:30: open at 20:15 campus time, which a Monterrey
+    // browser clock reads as 21:15 and called closed.
+    const w = [{ days: [0, 1, 2, 3, 4], open: '17:00', close: '20:30', overnight: false }];
+    check(`venueStatus on the campus clock under ${tz}`,
+      L.venueStatus(w, L.campusDate(new Date('2026-10-21T03:15:00Z'))).open === true);
+  }
+  process.env.TZ = prev; if (prev === undefined) delete process.env.TZ;
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

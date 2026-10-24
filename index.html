@@ -371,6 +371,8 @@ footer a{color:var(--accent)}
 const TAGS={vg:['Vegan','vg'],v:['Vegetarian','v'],gf:['Gluten-free','gf'],h:['Halal','h'],k:['Kosher','k']};
 const TAG_COLOR={vg:'var(--vegan)',v:'var(--vegetarian)',gf:'var(--gf)',h:'var(--halal)',k:'var(--kosher)'};
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+// Campus wall clock: every hours source is Stanford time, so "now" and "today" are too.
+const campusNow=window.CafeLogic.campusDate;
 const S={data:null,day:0,meal:0,view:'halls',diets:new Set(),exclude:new Set(),q:'',
          here:null,openOnly:false,cafes:null,libraries:null,rec:null,saved:new Set(),savedIndex:null};
 let map=null,markers=[],youMarker=null;
@@ -409,10 +411,10 @@ function statusFor(hall,date,mealName){
     const other=Object.keys((hall.hours||{})[wk]||{});
     return{k:'shut',txt:other.length?`no ${mealName.toLowerCase()} service — ${other.join(' & ').toLowerCase()} only`:'not served',neutral:true};
   }
-  const today=new Date();today.setHours(0,0,0,0);
+  const today=campusNow();today.setHours(0,0,0,0);
   const isToday=date.getTime()===today.getTime();
   if(!isToday)return{k:'shut',txt:`${fmt(w[0])}–${fmt(w[1])}`,neutral:true};
-  const now=new Date().getHours()*60+new Date().getMinutes();
+  const c=campusNow(),now=c.getHours()*60+c.getMinutes();
   if(now>=w[0]&&now<=w[1]){
     const left=w[1]-now;
     return{k:'open',txt:left<=30?`closes in ${left} min`:`until ${fmt(w[1])}`};
@@ -437,7 +439,7 @@ function dishMatches(x){
 /** Is the selected day actually today? "Open now" only means something if so. */
 function viewingToday(){
   if(!S.data)return false;
-  const t=new Date();t.setHours(0,0,0,0);
+  const t=campusNow();t.setHours(0,0,0,0);
   return parseDay(S.data.days[S.day]).getTime()===t.getTime();
 }
 const openFilterActive=()=>S.openOnly&&viewingToday();
@@ -526,7 +528,7 @@ function renderSaved(){
     if(idx===undefined){
       li.append(el('div','gone','Not on any menu this week.'));
     }else{
-      const r=window.SavedLogic.servingsFor(idx,S.savedIndex,d);
+      const r=window.SavedLogic.servingsFor(idx,S.savedIndex,d,campusNow());
       if(!r.upcoming.length){
         li.append(el('div','gone',
           r.total?`No servings left this week (${r.total} earlier).`:'Not served this week.'));
@@ -550,7 +552,7 @@ function renderSaved(){
 }
 
 function dayWord(i){
-  const today=new Date();today.setHours(0,0,0,0);
+  const today=campusNow();today.setHours(0,0,0,0);
   const dt=parseDay(S.data.days[i]);
   const diff=Math.round((dt-today)/86400000);
   return diff===0?'today':diff===1?'tomorrow':DOW[dt.getDay()];
@@ -747,8 +749,9 @@ function renderLibraries(){
   if(!data){const e=el('div','empty');e.append(el('b',null,'Library hours not loaded'));
     e.append(document.createTextNode('This section needs data/libraries.json.'));v.append(e);return;}
 
-  const now=new Date();
-  const todayISO=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+  // libraryStatus compares true instants; only the date key is read off the campus clock.
+  const now=new Date(),c=campusNow();
+  const todayISO=`${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;
   const rows=data.venues.map(x=>({...x,st:LL.libraryStatus(x.hours,now),
                                  late:LL.isLate(x.hours)}));
   rows.sort((a,b)=>(b.st.open-a.st.open)||(b.late-a.late)||a.name.localeCompare(b.name));
@@ -822,7 +825,7 @@ function renderRec(){
   if(!data){const e=el('div','empty');e.append(el('b',null,'Rec hours not loaded'));
     e.append(document.createTextNode('This section needs data/rec.json.'));v.append(e);return;}
 
-  const now=new Date();
+  const now=campusNow();
   const todayShort=window.CafeLogic.DOW_SHORT[window.CafeLogic.jsDayToIdx(now.getDay())];
   const rows=data.venues.map(x=>({...x,st:venueStatus(x.windows,now),
     late:x.windows.some(isLate),
@@ -885,7 +888,7 @@ function renderRec(){
 }
 
 function buildControls(){
-  const d=S.data,today=new Date();today.setHours(0,0,0,0);
+  const d=S.data,today=campusNow();today.setHours(0,0,0,0);
   const days=document.getElementById('days');days.replaceChildren();
   d.days.forEach((ds,i)=>{
     const dt=parseDay(ds),isToday=dt.getTime()===today.getTime();
@@ -982,7 +985,7 @@ function render(){
 function boot(d){
   S.data=d;
   S.saved=loadSaved();
-  const today=new Date();today.setHours(0,0,0,0);
+  const today=campusNow();today.setHours(0,0,0,0);
   const ti=d.days.findIndex(x=>parseDay(x).getTime()===today.getTime());
 
   // A shared link wins over the clock; anything it does not specify falls back to the
@@ -991,7 +994,7 @@ function boot(d){
   S.day=link.day;
   if(link.meal>=0){S.meal=link.meal;}
   else{
-    const h=new Date().getHours()+new Date().getMinutes()/60;
+    const c=campusNow(),h=c.getHours()+c.getMinutes()/60;
     const want=h<10.5?'Breakfast':h<16?'Lunch':'Dinner';
     S.meal=Math.max(0,d.meals.indexOf(want));
   }
@@ -1007,11 +1010,11 @@ function boot(d){
   const when=new Date(d.scraped_at);
   const hoursOld=(Date.now()-when.getTime())/3.6e6;
   document.getElementById('freshness').textContent='menus read '+
-    when.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+    when.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:window.CafeLogic.CAMPUS_TZ});
   if(ti<0||hoursOld>36){
     const w=el('div','stale');
     w.textContent=ti<0
-      ?`These menus were read ${when.toLocaleDateString()} and no longer cover today.`
+      ?`These menus were read ${when.toLocaleDateString(undefined,{timeZone:window.CafeLogic.CAMPUS_TZ})} and no longer cover today.`
       :`These menus are ${Math.floor(hoursOld)} hours old; R&DE may have changed them since.`;
     document.getElementById('stale').append(w);
   }

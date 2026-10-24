@@ -12,6 +12,23 @@
   const DOW_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   const jsDayToIdx = d => (d + 6) % 7;
+
+  /**
+   * The campus wall clock, as a Date whose LOCAL fields (getHours, getDay, getDate) read
+   * Stanford time whatever the viewer's timezone. Every hours source here is campus
+   * wall-clock text, so "now" must be too: on a laptop set to America/Monterrey the
+   * browser's own clock made some venue's open/closed answer wrong 66% of a PDT week
+   * and 85% of a PST one (projects/campus-clock/measure.mjs). Only for field reads and
+   * comparisons against wall-clock windows; the result is not the true instant.
+   */
+  const CAMPUS_TZ = 'America/Los_Angeles';
+  const campusFmt = new Intl.DateTimeFormat('en-US', { timeZone: CAMPUS_TZ, hourCycle: 'h23',
+    year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric' });
+  function campusDate(d = new Date()) {
+    const p = {};
+    for (const x of campusFmt.formatToParts(d)) p[x.type] = +x.value;
+    return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+  }
   const toMin = t => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
 
   function fmt12(t) {
@@ -33,9 +50,9 @@
 
   /**
    * @param {Array} windows  [{days:[0..6], open:'HH:MM', close:'HH:MM', overnight:bool}]
-   * @param {Date}  now      injectable so tests can fabricate a clock
+   * @param {Date}  now      campus wall clock (campusDate); injectable so tests can fabricate one
    */
-  function venueStatus(windows, now = new Date()) {
+  function venueStatus(windows, now = campusDate()) {
     const today = jsDayToIdx(now.getDay());
     const yesterday = (today + 6) % 7;
     const mins = now.getHours() * 60 + now.getMinutes();
@@ -61,7 +78,7 @@
     return { open: false };
   }
 
-  const api = { jsDayToIdx, toMin, fmt12, daysLabel, isLate, venueStatus, DOW_SHORT };
+  const api = { jsDayToIdx, campusDate, CAMPUS_TZ, toMin, fmt12, daysLabel, isLate, venueStatus, DOW_SHORT };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CafeLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -170,5 +170,16 @@ console.log('\n8. against the real scraped payload, not a fabrication');
   }
 }
 
+// Labels are campus time even when the reader's clock is not (the pin above hid this:
+// fmt12 used to format in the reader's zone, so a Monterrey reader saw "Opens 9am").
+{
+  process.env.TZ = 'America/Monterrey';
+  check('fmt12 is campus time under Monterrey', L.fmt12(new Date('2026-10-19T08:00:00.000-07:00')) === '8am',
+    L.fmt12(new Date('2026-10-19T08:00:00.000-07:00')));
+  check('isLate is campus time under Monterrey (closes 20:30 PT = 21:30 CST)',
+    L.isLate([rec('2026-10-19', 'Monday', '09:00', '20:30')]) === false);
+  process.env.TZ = 'America/Los_Angeles';
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

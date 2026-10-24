@@ -23,9 +23,19 @@
  * null them), so `closed` is the branch everywhere and times are never assumed.
  */
 (function (root) {
-  /** Format an instant in the reader's own timezone: 8am, 12am, 4:30pm. */
+  /** An instant's campus wall-clock fields. Labels name Stanford time, like every other
+   *  tab: a reader on a non-Pacific clock was told the library opened an hour late. */
+  const campusFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/Los_Angeles',
+    hourCycle: 'h23', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+  function campus(d) {
+    const p = {};
+    for (const x of campusFmt.formatToParts(d)) p[x.type] = +x.value;
+    return { date: p.day, hours: p.hour, minutes: p.minute };
+  }
+
+  /** Format an instant in campus time: 8am, 12am, 4:30pm. */
   function fmt12(d) {
-    const h = d.getHours(), m = d.getMinutes();
+    const { hours: h, minutes: m } = campus(d);
     return `${h % 12 || 12}${m ? ':' + String(m).padStart(2, '0') : ''}${h >= 12 ? 'pm' : 'am'}`;
   }
 
@@ -77,7 +87,7 @@
   /** True when a venue closes at or after 21:00 on some day, or runs past midnight. */
   function isLate(hours) {
     return (hours || []).map(span).filter(Boolean).some(s =>
-      s.close.getDate() !== s.open.getDate() || s.close.getHours() >= 21);
+      campus(s.close).date !== campus(s.open).date || campus(s.close).hours >= 21);
   }
 
   /** "Open until 12am" / "Opens 8am" / "Opens Monday 8am" / "Closed this week". */
