@@ -15,8 +15,12 @@
 <script src="cafes-logic.js"></script>
 <script src="libraries-logic.js"></script>
 <script src="saved-logic.js"></script>
+<script src="walk-logic.js"></script>
 <script src="allergen-check.js"></script>
 <script src="url-state.js"></script>
+<script src="search-logic.js"></script>
+<script src="avoid-logic.js"></script>
+<script src="trucks-logic.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
@@ -111,6 +115,8 @@ header.top h1 .red{color:var(--accent)}
   cursor:pointer;min-height:38px}
 .seg button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);
   color:var(--accent-ink)}
+/* Seven views no longer fit one row at 375px (Trucks made it +2px); wrap into equal columns rather than clip. */
+#views{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr))}
 .toolbar{display:flex;gap:6px;margin-top:7px;align-items:center}
 .toolbar input{flex:1;min-width:0;font-family:var(--f-ui);font-size:15px;padding:8px 11px;
   color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
@@ -133,6 +139,10 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .chip{background:var(--sunk);border:1px solid var(--line);border-radius:var(--r);
   padding:6px 11px;cursor:pointer;font-family:var(--f-ui);font-size:13px;font-weight:500;
   color:var(--ink-2);min-height:34px}
+.drawer input.avoid{width:100%;box-sizing:border-box;font-family:var(--f-ui);font-size:15px;padding:8px 11px;
+  color:var(--ink);background:var(--sunk);border:1px solid var(--line);border-radius:var(--r)}
+.drawer input.avoid::placeholder{color:var(--muted)}
+.avoidnote{font-size:12px;color:var(--muted);margin:5px 0 0}
 .chip.diet[aria-pressed="true"]{background:var(--c);border-color:var(--c);color:#fff}
 .chip.ex[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--ground);
   text-decoration:line-through}
@@ -158,6 +168,8 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .pill.shut{background:var(--surface-2);color:var(--closed);border:1px solid var(--line)}
 .hstat .when{color:var(--muted);display:block;margin-top:3px;font-variant-numeric:tabular-nums}
 .hstat .far{color:var(--ink-2);display:block;font-variant-numeric:tabular-nums;font-weight:600}
+.hstat .reach{display:block;margin-top:2px;font-size:12.5px;color:var(--soon)}
+.hstat .reach.late{color:var(--closed);font-weight:600}
 .hmeta{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;align-items:center}
 .tagbadge{font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 6px;border-radius:3px;
   border:1px solid currentColor;text-transform:uppercase}
@@ -175,7 +187,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .b{font-size:9px;font-weight:700;letter-spacing:.04em;padding:1.5px 3.5px;border-radius:2px;
   border:1px solid currentColor;line-height:1.3}
 .b.vg{color:var(--vegan)} .b.v{color:var(--vegetarian)} .b.gf{color:var(--gf)}
-.b.h{color:var(--halal)} .b.k{color:var(--kosher)}
+.b.h{color:var(--halal)} .b.k{color:var(--kosher)} .b.pork{color:var(--halal)}
 .b.warn{color:var(--soon)}
 .detail .chk{color:var(--soon);font-weight:600}
 .detail{padding:0 13px 11px;font-size:12.5px;color:var(--ink-2)}
@@ -219,6 +231,9 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .saved .when{color:var(--ink-2);font-size:12.5px;margin-top:2px}
 .saved .when em{font-style:normal;color:var(--muted)}
 .saved .gone{color:var(--muted);font-size:12.5px;margin-top:2px}
+.saved .calrow{margin:0 0 6px;font-size:12.5px}
+.saved .calrow button{background:none;border:1px solid var(--line);border-radius:var(--r);color:var(--accent);
+  font-family:var(--f-ui);font-size:12.5px;padding:4px 9px;cursor:pointer}
 
 /* ---------- venue cards: cafés and libraries ---------- */
 /* One card style for both. Libraries reuse it rather than introducing a parallel
@@ -229,6 +244,8 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .cafe h3,.venue h3{font-family:var(--f-display);font-weight:600;font-size:17px;margin:0;
   letter-spacing:-.01em;display:flex;justify-content:space-between;gap:10px;align-items:start}
 .cafe .desc,.venue .desc{color:var(--muted);font-size:12.5px;margin-top:4px}
+.truckday{font-family:var(--f-display);font-weight:600;font-size:14px;color:var(--ink);margin:16px 0 6px}
+.venue .desc a{color:var(--accent)}
 .cafe ul,.venue ul{list-style:none;margin:8px 0 0;padding:0;font-size:13px}
 .cafe li,.venue li{padding:3px 0;color:var(--ink-2);display:flex;gap:8px}
 .cafe li .dow,.venue li .dow{font-size:10px;font-weight:700;letter-spacing:.08em;
@@ -289,7 +306,8 @@ footer a{color:var(--accent)}
   .hall > summary .hstat{grid-column:1;grid-row:auto;text-align:left;margin-top:5px;
     display:flex;flex-wrap:wrap;gap:3px 9px;align-items:baseline}
   .hall > summary .hstat .when,
-  .hall > summary .hstat .far{display:inline;margin-top:0}
+  .hall > summary .hstat .far,
+  .hall > summary .hstat .reach{display:inline;margin-top:0}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -326,6 +344,7 @@ footer a{color:var(--accent)}
   <div id="view-cafes" class="hidden"></div>
   <div id="view-libraries" class="hidden"></div>
   <div id="view-rec" class="hidden"></div>
+  <div id="view-trucks" class="hidden"></div>
   <div id="view-map" class="hidden">
     <div id="map"></div>
     <div class="maplegend">
@@ -373,8 +392,8 @@ const TAG_COLOR={vg:'var(--vegan)',v:'var(--vegetarian)',gf:'var(--gf)',h:'var(-
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 // Campus wall clock: every hours source is Stanford time, so "now" and "today" are too.
 const campusNow=window.CafeLogic.campusDate;
-const S={data:null,day:0,meal:0,view:'halls',diets:new Set(),exclude:new Set(),q:'',
-         here:null,openOnly:false,cafes:null,libraries:null,rec:null,saved:new Set(),savedIndex:null};
+const S={data:null,day:0,meal:0,view:'halls',diets:new Set(),exclude:new Set(),avoid:[],q:'',
+         here:null,openOnly:false,cafes:null,libraries:null,rec:null,trucks:null,saved:new Set(),savedIndex:null};
 let map=null,markers=[],youMarker=null;
 
 const el=(t,c,txt)=>{const n=document.createElement(t);if(c)n.className=c;
@@ -417,7 +436,7 @@ function statusFor(hall,date,mealName){
   const c=campusNow(),now=c.getHours()*60+c.getMinutes();
   if(now>=w[0]&&now<=w[1]){
     const left=w[1]-now;
-    return{k:'open',txt:left<=30?`closes in ${left} min`:`until ${fmt(w[1])}`};
+    return{k:'open',txt:left<=30?`closes in ${left} min`:`until ${fmt(w[1])}`,left};
   }
   if(now<w[0]){
     const until=w[0]-now;
@@ -431,7 +450,8 @@ function dishMatches(x){
   for(const t of S.diets)if(!x.t.includes(t))return false;
   if(S.exclude.size){const own=x.a.toUpperCase();
     for(const a of S.exclude)if(own.includes(a))return false;}
-  if(S.q&&!(x.n+' '+x.i).toLowerCase().includes(S.q))return false;
+  if(S.avoid.length&&AvoidLogic.hits(S.avoid,x.n,x.i).length)return false;
+  if(S.q&&!SearchLogic.matches(S.q,x.n,x.i))return false;
   return true;
 }
 
@@ -454,10 +474,11 @@ function currentHalls(){
     const matched=items.filter(dishMatches);
     const st=statusFor(h,date,mealName);
     const dist=(S.here&&h.coords)?haversine(S.here,h.coords):null;
-    rows.push({hall:h,hi,items,matched,total:refs.length,st,dist});
+    const reach=WalkLogic.reach(st,dist);
+    rows.push({hall:h,hi,items,matched,total:refs.length,st,dist,reach});
   });
-  const rank={open:0,soon:1,shut:2};
-  rows.sort((a,b)=>(rank[a.st.k]-rank[b.st.k])
+  // An open hall that shuts before you could walk there ranks below the ones you can reach.
+  rows.sort((a,b)=>(WalkLogic.rank(a.st,a.reach)-WalkLogic.rank(b.st,b.reach))
     ||((a.dist??1e9)-(b.dist??1e9))
     ||a.hall.name.localeCompare(b.hall.name));
   return rows;
@@ -482,6 +503,13 @@ function dishNode(x,uniqueAt){
   const w=window.AllergenCheck.warnFor(x,S.exclude);
   if(w.noData)bg.append(el('span','b warn','no allergen data'));
   else if(w.hits.length)bg.append(el('span','b warn','check '+w.hits.map(h=>h.allergen.toLowerCase()).join(', ')));
+  // A diet tag R&DE's own allergen tags contradict (vegan + EGG). Marked, not hidden, like the rest.
+  const dc=window.AllergenCheck.dietConflicts(x);
+  dc.forEach(c=>bg.append(el('span','b warn',c.label+'? '+c.why)));
+  // R&DE stopped tagging halal on 2026-10-20. Pork is read from the words, "not halal" is
+  // R&DE's own note; no mark is not a halal claim (allergen-check.js porkNote).
+  const pk=window.AllergenCheck.porkNote(x);
+  if(pk)bg.append(el('span','b pork',pk.kind==='pork'?'pork':'not halal'));
   sum.append(bg);det.append(sum);
   const dl=el('dl','detail');
   if(x.i){dl.append(el('dt',null,'Ingredients'),el('dd',null,x.i));}
@@ -492,6 +520,11 @@ function dishNode(x,uniqueAt){
     un.forEach((h,k)=>{if(k)dd.append('; ');
       dd.append('mentions \u201c'+h.phrase+'\u201d, ',el('span','chk','not tagged '+h.allergen.toLowerCase()));});
     dl.append(el('dt',null,'Ingredients vs tags'),dd);}
+  if(dc.length){dl.append(el('dt',null,'Diet tag vs contents'),el('dd',null,dc.map(c=>
+    'tagged '+c.label+', but '+(c.from==='allergens'?'its allergens list ':'the ingredients name ')+c.why).join('; ')));}
+  if(pk){dl.append(el('dt',null,'Pork / halal'),el('dd',null,pk.kind==='pork'
+    ?'the ingredients name \u201c'+pk.phrase+'\u201d'
+    :'R&DE marks an ingredient \u201cnon-halal\u201d'));}
   if(x.x){dl.append(el('dt',null,'Shared equipment with'),el('dd',null,x.x.toLowerCase()));}
   if(!x.i&&!x.a&&!x.x)dl.append(el('dd',null,'No ingredient detail published.'));
   det.append(dl);li.append(det);return li;
@@ -520,6 +553,24 @@ function renderSaved(){
   const clr=el('button',null,'clear');clr.type='button';
   clr.onclick=()=>{S.saved.clear();persistSaved();render();};
   h.append(clr);box.append(h);
+
+  // Calendar export: a once-a-week dish reminds you without opening the site.
+  const cal=window.SavedLogic.calendarSlots([...byName.values()],S.savedIndex,d,campusNow());
+  if(cal.slots.length){
+    const row=el('div','calrow');
+    const b=el('button',null,`Add ${cal.slots.length} serving${cal.slots.length>1?'s':''} to calendar`);
+    b.type='button';
+    b.onclick=()=>{
+      const blob=new Blob([window.SavedLogic.toICS(cal.slots,d)],{type:'text/calendar'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+      a.download='saved-dishes.ics';document.body.append(a);a.click();a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+    };
+    row.append(b);
+    if(cal.skipped.length)row.append(el('span','gone',
+      ` (leaves out ${cal.skipped.join(', ')}: served most days)`));
+    box.append(row);
+  }
 
   const ul=el('ul');
   [...S.saved].sort().forEach(name=>{
@@ -575,8 +626,8 @@ function renderHalls(rows){
     stat.append(el('span','pill '+(r.st.k==='open'?'open':r.st.k==='soon'?'soon':'shut'),
       r.st.k==='open'?'serving':r.st.k==='soon'?'soon':(r.st.neutral?'hours':'closed')));
     stat.append(el('span','when',r.st.txt));
-    if(r.dist!=null)stat.append(el('span','far',
-      r.dist>=1000?`${(r.dist/1000).toFixed(1)} km`:`${Math.round(r.dist)} m`));
+    if(r.dist!=null)stat.append(el('span','far',WalkLogic.label(r.dist)));
+    if(r.reach&&r.reach.txt)stat.append(el('span','reach '+r.reach.k,r.reach.txt));
     sum.append(stat);
     const meta=el('div','hmeta');
     if(r.hall.specialty)meta.append(el('span','tagbadge '+
@@ -612,7 +663,7 @@ function renderCompare(rows){
   cols.forEach(r=>{const th=el('th');th.append(document.createTextNode(r.hall.name));
     const s=el('small');
     s.textContent=[r.st.k==='open'?'serving':r.st.txt,
-      r.dist!=null?(r.dist>=1000?`${(r.dist/1000).toFixed(1)} km`:`${Math.round(r.dist)} m`):null]
+      r.dist!=null?WalkLogic.label(r.dist):null,r.reach&&r.reach.k==='late'?'closes first':null]
       .filter(Boolean).join(' · ');
     th.append(s);tr.append(th);});
   thead.append(tr);t.append(thead);
@@ -662,8 +713,7 @@ function renderMap(rows){
     const m=L.marker(r.hall.coords,{icon:L.divIcon({className:'',
       html:`<div class="leaflet-pin" style="width:15px;height:15px;background:${col}"></div>`,
       iconSize:[15,15],iconAnchor:[7,7]})}).addTo(map);
-    const dist=r.dist!=null?(r.dist>=1000?`${(r.dist/1000).toFixed(1)} km away`
-      :`${Math.round(r.dist)} m away`):'';
+    const dist=r.dist!=null?WalkLogic.label(r.dist)+(r.reach&&r.reach.txt?` — ${r.reach.txt}`:''):'';
     m.bindPopup(`<b>${r.hall.name}</b><br>${r.st.k==='open'?'Serving now':''} ${r.st.txt}`+
       `<br>${r.matched.length} of ${r.total} dishes${dist?'<br>'+dist:''}`+
       (r.hall.coords_approximate?'<br><em>approximate location</em>':'')+
@@ -887,6 +937,57 @@ function renderRec(){
   v.append(note);
 }
 
+/* Food trucks are dated shifts from two schedules (R&DE's School of Medicine table and
+   City Flavor's Y2E2 calendar), so TruckLogic owns the now/later/done reasoning rather
+   than venueStatus, which reads recurring weekday windows. Neither source gives
+   coordinates, so there is no walking time: a guessed pin would put a number on a guess. */
+function truckCard(r,st){
+  const card=el('div','venue truck');
+  const h=el('h3');h.append(document.createTextNode(r.vendor));
+  if(st){
+    const right=el('span','badges');
+    const lab={open:'open',later:'later',done:'done',unknown:'hours?'}[st.state];
+    right.append(el('span','pill '+(st.state==='open'?'open':'shut'),lab));
+    h.append(right);
+  }
+  card.append(h);
+  const hours=r.open?`${fmt12(r.open)} – ${fmt12(r.close)}`:(r.raw_hours||'hours not published');
+  card.append(el('div','desc',`${r.place} · ${hours}`));
+  if(st&&st.state==='open')card.append(el('div','desc',`Serving for ${st.leftMin} more min`));
+  else if(st&&st.state==='later')card.append(el('div','desc',`Opens in ${st.inMin>=60?Math.floor(st.inMin/60)+' h '+(st.inMin%60)+' min':st.inMin+' min'}`));
+  const extra=[r.cuisine,(r.options||[]).length?(r.options.join(', ')+' options'):null].filter(Boolean);
+  if(extra.length)card.append(el('div','desc',extra.join(' · ')));
+  if(r.link){const a=el('a',null,'Vendor site');a.href=r.link;a.target='_blank';a.rel='noopener';
+    const d=el('div','desc');d.append(a);card.append(d);}
+  return card;
+}
+function renderTrucks(){
+  const v=document.getElementById('view-trucks');v.replaceChildren();
+  const data=S.trucks;
+  if(!data){const e=el('div','empty');e.append(el('b',null,'Food trucks not loaded'));
+    e.append(document.createTextNode('This section needs data/trucks.json.'));v.append(e);return;}
+  const p=window.TruckLogic.plan(data.trucks,campusNow());
+  const lede=el('p','tally');
+  if(p.today.length){
+    lede.append(el('b',null,String(p.openNow)),
+      document.createTextNode(` of ${p.today.length} food truck${p.today.length===1?'':'s'} serving now`));
+  }else lede.textContent='No food trucks on campus today.';
+  v.append(lede);
+  p.today.forEach(r=>v.append(truckCard(r,r.st)));
+  p.week.forEach(w=>{
+    const [yy,mm,dd]=w.date.split('-').map(Number),dt=new Date(yy,mm-1,dd);
+    v.append(el('h3','truckday',`${DOW[dt.getDay()]} ${dt.getMonth()+1}/${dt.getDate()}`));
+    w.rows.forEach(r=>v.append(truckCard(r,null)));
+  });
+  if(!p.today.length&&!p.week.length){
+    const e=el('div','empty');e.append(el('b',null,'No upcoming trucks listed'));
+    e.append(document.createTextNode('Neither schedule lists a truck from today on. They are usually posted a week ahead.'));v.append(e);}
+  const note=el('p','tally');
+  note.textContent='Food trucks do not take meal plan or Cardinal Dollars. Schedules from '
+    +'rde.stanford.edu (Mobile Food Vendors) and cityflavor.com (Stanford Y2E2); vendors can change.';
+  v.append(note);
+}
+
 function buildControls(){
   const d=S.data,today=campusNow();today.setHours(0,0,0,0);
   const days=document.getElementById('days');days.replaceChildren();
@@ -905,7 +1006,7 @@ function buildControls(){
     b.onclick=()=>{S.meal=i;render();};meals.append(b);});
   const views=document.getElementById('views');views.replaceChildren();
   [['halls','Halls'],['compare','Compare'],['map','Map'],['cafes','Cafés'],
-   ['libraries','Libraries'],['rec','Rec']].forEach(([k,label])=>{
+   ['libraries','Libraries'],['rec','Rec'],['trucks','Trucks']].forEach(([k,label])=>{
     const b=el('button',null,label);b.type='button';
     b.setAttribute('aria-pressed',String(S.view===k));
     b.onclick=()=>{S.view=k;render();};views.append(b);});
@@ -937,6 +1038,21 @@ function buildDrawer(){
     b.onclick=()=>{S.exclude.has(a)?S.exclude.delete(a):S.exclude.add(a);render();};
     c2.append(b);});
   dr.append(c2);
+  // Ingredients, not just names: most mushroom and cilantro dishes say so only in the list.
+  // Saved on this device, and left alone by "Clear all filters": it is a standing preference.
+  dr.append(el('h3',null,'Avoid ingredients'));
+  const av=el('input','avoid');av.type='text';av.autocomplete='off';
+  av.placeholder='e.g. mushroom, cilantro, bell pepper';av.setAttribute('aria-label','Ingredients to avoid, comma separated');
+  av.value=S.avoid.join(', ');
+  av.onchange=()=>{S.avoid=AvoidLogic.parse(av.value);AvoidLogic.save(localStorage,S.avoid);render();};
+  dr.append(av);
+  if(S.avoid.length){
+    // Per serving, not per unique dish, so it adds up with the halls' "N of M dishes".
+    const served=d.halls.flatMap((h,hi)=>d.menus[`${hi}|${S.day}|${S.meal}`]||[]).map(i=>d.dishes[i]);
+    const t=AvoidLogic.tally(S.avoid,served);
+    dr.append(el('p','avoidnote',`Hiding ${t.hidden} of ${served.length} dishes this meal`+
+      (t.hidden?' · '+S.avoid.map(w=>`${w} ${t.counts[w]}`).join(' · '):'')));
+  }
   const clear=el('button','chip','Clear all filters');clear.type='button';
   clear.style.marginTop='11px';
   clear.onclick=()=>{S.diets.clear();S.exclude.clear();S.openOnly=false;S.q='';
@@ -972,6 +1088,7 @@ function render(){
   document.getElementById('view-cafes').classList.toggle('hidden',S.view!=='cafes');
   document.getElementById('view-libraries').classList.toggle('hidden',S.view!=='libraries');
   document.getElementById('view-rec').classList.toggle('hidden',S.view!=='rec');
+  document.getElementById('view-trucks').classList.toggle('hidden',S.view!=='trucks');
   document.getElementById('view-map').classList.toggle('hidden',S.view!=='map');
   document.getElementById('saved-panel').classList.toggle('hidden',S.view!=='halls');
   if(S.view==='halls'){renderSaved();renderHalls(rows);}
@@ -979,12 +1096,18 @@ function render(){
   else if(S.view==='cafes')renderCafes();
   else if(S.view==='libraries')renderLibraries();
   else if(S.view==='rec')renderRec();
+  else if(S.view==='trucks')renderTrucks();
   else renderMap(rows);
 }
 
 function boot(d){
+  // R&DE lists some dishes at two stations of one meal (Lakeside dinner, 'Seasonal Steamed
+  // Vegetables', 6 nights of 7 on 2026-10-24); stations are not shown, so a repeat is noise.
+  // Done here, not in build.py: a changed builder blocks the daily data-only publish.
+  for(const k in d.menus)d.menus[k]=[...new Set(d.menus[k])];
   S.data=d;
   S.saved=loadSaved();
+  S.avoid=AvoidLogic.load(localStorage);
   const today=campusNow();today.setHours(0,0,0,0);
   const ti=d.days.findIndex(x=>parseDay(x).getTime()===today.getTime());
 
@@ -1069,6 +1192,8 @@ fetch('data/libraries.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.libraries=c;if(S.data&&S.view==='libraries')renderLibraries();}).catch(()=>{});
 fetch('data/rec.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.rec=c;if(S.data&&S.view==='rec')renderRec();}).catch(()=>{});
+fetch('data/trucks.json').then(r=>r.ok?r.json():null)
+  .then(c=>{S.trucks=c;if(S.data&&S.view==='trucks')renderTrucks();}).catch(()=>{});
 
 fetch('data/site.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
   .then(boot).catch(err=>{

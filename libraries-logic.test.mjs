@@ -181,5 +181,32 @@ console.log('\n8. against the real scraped payload, not a fabrication');
   process.env.TZ = 'America/Los_Angeles';
 }
 
+// Cases found by bin/mutate (projects/mutation-audit).
+console.log('\n9. guards and boundaries the earlier cases never touched (bin/mutate survivors)');
+{
+  const withTimes = { ...rec('2026-10-19', 'Monday', '09:00', '17:00'), closed: true };
+  check('closed:true wins even when times are present', L.span(withTimes) === null);
+  check('missing close alone is null',
+    L.span({ day: '2026-10-19', weekday: 'Monday', closed: false, opens_at: '2026-10-19T09:00:00.000-07:00' }) === null);
+  check('unparseable open alone is null',
+    L.span({ ...rec('2026-10-19', 'Monday', '09:00', '17:00'), opens_at: 'nonsense' }) === null);
+  const past = [rec('2026-10-19', 'Monday', '09:00', '17:00')];
+  check('every span already over -> closed this week',
+    L.libraryStatus(past, pt('2026-10-20T12:00')).neverThisWeek === true);
+  const h = [rec('2026-10-22', 'Thursday', '09:00', '17:00'), rec('2026-10-20', 'Tuesday', '10:00', '17:00'),
+             rec('2026-10-21', 'Wednesday', '08:00', '17:00')];
+  const st = L.libraryStatus(h, pt('2026-10-19T20:00'));
+  check('soonest future opening wins, records out of order', st.opensDay === 'Tuesday' && st.opensAt === '10am',
+    `${st.opensDay} ${st.opensAt}`);
+  check('a span opening exactly now is open, not "next"',
+    L.libraryStatus(h, pt('2026-10-20T10:00')).open === true);
+  check('close at exactly 21:00 is late', L.isLate([rec('2026-10-19', 'Monday', '09:00', '21:00')]) === true);
+  check('close at 20:59 is not late', L.isLate([rec('2026-10-19', 'Monday', '09:00', '20:59')]) === false);
+  check('exactly 16h out drops the weekday',
+    L.statusLabel({ open: false, opensAt: '9am', opensDay: 'Tuesday', opensInMin: 960 }) === 'Opens 9am');
+  check('16h01m out names the weekday',
+    L.statusLabel({ open: false, opensAt: '9am', opensDay: 'Tuesday', opensInMin: 961 }) === 'Opens Tuesday 9am');
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

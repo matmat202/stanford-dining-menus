@@ -60,5 +60,43 @@ check('warning only for excluded allergens',
       A.warnFor(carn, new Set(['SOY'])).hits.map(x => x.allergen).join() === 'SOY');
 check('excluding something unrelated -> no hits', A.warnFor(carn, new Set(['FISH'])).hits.length === 0);
 
+console.log('\n5. diet tags contradicted by the dish\'s own allergen tags (projects/diet-tag-check)');
+const why = (d) => A.dietConflicts(d).map(c => `${c.tag}:${c.why}`).sort().join(',');
+check('Picadillo Burrito: tagged vegan, allergen EGG -> vg:egg',
+      why({ n: 'Plant-Forward Picadillo Burrito', i: 'plant-forward "beef" crumbles (pea protein, contains egg), flour tortilla',
+            a: 'EGG, WHEAT', x: 'SOY', t: ['vg'] }) === 'vg:egg');
+check('Korean tempeh: vegan with honey in the glaze -> vg:honey',
+      why({ i: 'tempeh, glaze (gochujang, tamari, sugar, sesame oil, honey, water)', a: 'SESAME, SOY, WHEAT', t: ['vg'] }) === 'vg:honey');
+check('vegetarian with EGG and MILK is fine', why({ i: 'meatless cutlet', a: 'EGG, MILK, WHEAT', t: ['v'] }) === '');
+check('vegan with oat milk / plant-forward "beef" (no allergen tag) is fine',
+      why({ i: 'potatoes, oat milk, vegan butter, plant-forward "beef" crumbles', a: '', t: ['gf', 'vg'] }) === '');
+check('vegetarian with SHELLFISH -> v:shellfish', why({ i: 'noodles', a: 'SHELLFISH, WHEAT', t: ['v'] }) === 'v:shellfish');
+check('gluten-free with WHEAT -> gf:wheat', why({ i: 'pasta', a: 'WHEAT', t: ['gf'] }) === 'gf:wheat');
+check('honeydew, honeycrisp, vegan honey, agar are not honey/gelatin',
+      why({ i: 'honeydew melon, honeycrisp apple, vegan honey, agar', a: '', t: ['vg', 'v'] }) === '');
+check('shared-equipment field (x) is not a contradiction', why({ i: 'rice', a: '', x: 'EGG, MILK', t: ['vg'] }) === '');
+check('untagged dish -> nothing', why({ i: 'honey, eggs', a: 'EGG', t: [] }) === '');
+check('gelatin contradicts vegetarian too', why({ i: 'gelatin, sugar', a: '', t: ['v'] }) === 'v:gelatin');
+
+console.log('\n6. pork, and R&DE\'s "non-halal" note (projects/pork-marker)');
+const pk = (d) => { const r = A.porkNote(d); return r ? `${r.kind}:${r.phrase}` : null; };
+check('pork named in ingredients', pk({ n: 'Carolina Pulled Pork', i: 'pork, apple cider vinegar', t: ['gf'] }) === 'pork:pork');
+check('pork named only in the dish name', pk({ n: 'Ham Scramble', i: '', t: [] }) === 'pork:ham');
+check('R&DE annotation on pork still reads as pork', pk({ n: 'Carnitas', i: '(non-halal) pork, onions', t: [] }) === 'pork:carnitas');
+check('a vegan tag alone rules out pork words  [negative control]', pk({ n: 'Hongos Carnitas', i: 'mushrooms, achiote', t: ['vg'] }) === null);
+check('lard in refried beans', pk({ n: 'Crispy Corn Tostada', i: '(non-halal) lard (in refried beans), corn', t: [] }) === 'pork:lard');
+check('not halal without pork: chicken sausage, sheep casing',
+  pk({ n: 'Chicken Apple Sausage', i: 'chicken, apples, (non-halal) sheep casing', t: [] }) === 'not-halal:non-halal');
+check('"not halal" spelled out', pk({ n: 'Scramble', i: 'eggs, chicken apple sausage (not halal)', t: [] }) === 'not-halal:not halal');
+check('a vegetarian dish keeps R&DE\'s note (wine)', pk({ n: 'Lemon Beurre Blanc', i: '(non-halal) dry white wine, butter', t: ['gf', 'v'] }) === 'not-halal:non-halal');
+check('vegan "carnitas" is not pork  [negative control]', pk({ n: 'Jackfruit Carnitas', i: 'jackfruit, cumin', t: ['vg'] }) === null);
+check('turkey bacon is not pork  [negative control]', pk({ n: 'Turkey Bacon', i: 'turkey thigh meat, sea salt', t: ['gf'] }) === null);
+check('hamburger is not ham  [negative control]', pk({ n: 'Hamburger', i: 'beef patty, bun', t: [] }) === null);
+check('graham crackers are not ham  [negative control]', pk({ n: 'Pie', i: 'graham cracker crust', t: [] }) === null);
+check('gelatin claims nothing (no animal named)  [negative control]', pk({ n: 'Minestrone', i: 'pasta, gelatin, beef stock', t: [] }) === null);
+check('plain "sausage" claims nothing  [negative control]', pk({ n: 'Sausage & Mushroom Pizza', i: 'pizza dough, sausage', t: [] }) === null);
+check('R&DE\'s "(HALAL)" note is not "non-halal"  [negative control]', pk({ n: 'Steak', i: 'beef (HALAL), mushroom', t: [] }) === null);
+check('empty dish', pk({}) === null);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

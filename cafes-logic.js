@@ -66,7 +66,7 @@
         // from yesterday's window.
         if (w.days.includes(today) && mins >= o) return { open: true, until: fmt12(w.close) };
         if (w.days.includes(yesterday) && mins < c) return { open: true, until: fmt12(w.close) };
-      } else if (w.days.includes(today) && mins >= o && mins <= c) {
+      } else if (w.days.includes(today) && mins >= o && mins < c) {
         return { open: true, until: fmt12(w.close) };
       }
       if (w.days.includes(today) && mins < o && (soonest === null || o < soonest)) soonest = o;

@@ -50,7 +50,7 @@ function worker({ online = true } = {}) {
 }
 const stale = (w, p) => w.store.set(new URL(p, ORIGIN).href, { body: 'cache', clone() { return this; } });
 
-for (const js of ['url-state.js', 'cafes-logic.js', 'libraries-logic.js', 'saved-logic.js', 'allergen-check.js', 'widget.js']) {
+for (const js of ['url-state.js', 'cafes-logic.js', 'libraries-logic.js', 'saved-logic.js', 'walk-logic.js', 'allergen-check.js', 'avoid-logic.js', 'widget.js']) {
   const w = worker(); stale(w, js);
   check(`${js} online: the network copy, not the previous deploy's`, (await w.get(js)) === 'network');
 }

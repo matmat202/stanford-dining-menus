@@ -100,5 +100,34 @@ console.log('\n6. against the real scraped data');
   process.env.TZ = prev; if (prev === undefined) delete process.env.TZ;
 }
 
+// Cases found by bin/mutate (projects/mutation-audit): each one kills a planted bug the
+// suite above let through.
+console.log('\n7. boundaries the earlier cases never touched (bin/mutate survivors)');
+{
+  const w = [{ days: [0,1,2,3,4], open: '07:00', close: '15:00', overnight: false }];
+  check('exactly at open is open',   L.venueStatus(w, at(1, 7)).open === true);
+  check('exactly at close is closed', L.venueStatus(w, at(1, 15)).open === false,
+    'same rule as libraries-logic: a venue shutting at 3pm is not open at 3pm');
+  check('15:10 is closed (minutes count, not just hours)',
+    L.venueStatus(w, at(1, 15, 10)).open === false);
+  const ov = [{ days: [0,1,2,3,4], open: '11:00', close: '02:00', overnight: true }];
+  check('overnight: exactly at open is open', L.venueStatus(ov, at(1, 11)).open === true);
+  check('overnight: exactly at close is closed', L.venueStatus(ov, at(2, 2)).open === false);
+  // Two windows today, listed late-first: the soonest one must win.
+  const two = [{ days: [0], open: '17:00', close: '20:00', overnight: false },
+               { days: [0], open: '07:30', close: '10:00', overnight: false }];
+  check('soonest of two later windows, out of order', L.venueStatus(two, at(1, 6)).opensAt === '7:30am',
+    L.venueStatus(two, at(1, 6)).opensAt);
+  check('between windows, the evening one is next', L.venueStatus(two, at(1, 12)).opensAt === '5pm',
+    L.venueStatus(two, at(1, 12)).opensAt);
+  check('a window that has already closed is not "next"', L.venueStatus(two, at(1, 21)).opensAt === undefined);
+  check('close at 21:00 counts as late', L.isLate({ close: '21:00', overnight: false }) === true);
+  check('close at 20:59 is not late',     L.isLate({ close: '20:59', overnight: false }) === false);
+  check('two contiguous days are listed, not ranged', L.daysLabel([0,1]) === 'Mon Tue', L.daysLabel([0,1]));
+  check('three contiguous days are ranged', L.daysLabel([0,1,2]) === 'Mon–Wed', L.daysLabel([0,1,2]));
+  check('three scattered days are listed', L.daysLabel([0,2,4]) === 'Mon Wed Fri', L.daysLabel([0,2,4]));
+  check('unsorted input is sorted first', L.daysLabel([4,0,2,1,3]) === 'Mon–Fri', L.daysLabel([4,0,2,1,3]));
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

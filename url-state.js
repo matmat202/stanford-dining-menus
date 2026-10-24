@@ -11,7 +11,7 @@
  */
 (function (root) {
   const DIETS = ['vg', 'v', 'gf', 'h', 'k'];
-  const VIEWS = ['halls', 'compare', 'map', 'cafes', 'libraries', 'rec'];
+  const VIEWS = ['halls', 'compare', 'map', 'cafes', 'libraries', 'rec', 'trucks'];
 
   const pad = n => String(n).padStart(2, '0');
 
@@ -72,8 +72,14 @@
     const v = p.get('v');
     if (v && VIEWS.includes(v)) out.view = v;
 
+    // A diet no dish carries has no chip (index.html buildDrawer hides it), so a link
+    // naming one would filter everything out with nothing to un-press. R&DE dropped
+    // halal on 2026-10-20 and every #diet=h link became that. Validated against the
+    // payload, as allergens are below; a payload without dishes skips the check.
+    const present = Array.isArray(data.dishes)
+      ? new Set(data.dishes.flatMap(x => x.t || [])) : null;
     for (const c of (p.get('diet') || '').split(',')) {
-      if (DIETS.includes(c)) out.diets.add(c);
+      if (DIETS.includes(c) && (!present || present.has(c))) out.diets.add(c);
     }
     const known = new Set(data.allergens || []);
     for (const a of (p.get('x') || '').split(',')) {

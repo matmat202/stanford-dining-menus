@@ -264,6 +264,10 @@ li:first-child{border-top:0}
     if (!feeds.has(src)) feeds.set(src, fetch(src).then(r => {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
+    }).then(d => {
+      // a dish R&DE lists at two stations of one meal is one dish here (index.html boot())
+      for (const k in d.menus) d.menus[k] = [...new Set(d.menus[k])];
+      return d;
     }));
     return feeds.get(src);
   }

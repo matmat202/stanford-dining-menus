@@ -87,5 +87,28 @@ console.log('\n5. against the real payload');
     U.parse('', real).day >= 0 && U.parse('', real).day < real.days.length);
 }
 
+// Cases found by bin/mutate (projects/mutation-audit): index 0 is the value an
+// off-by-one guard silently drops, and every fixture above avoided it.
+console.log('\n6. the first day and the first meal (bin/mutate survivors)');
+{
+  const r = U.parse('#d=2026-10-17&m=Breakfast', data, now);
+  check('a link to the first day lands on it, not on today', r.day === 0 && r.staleDate === null, String(r.day));
+  check('Breakfast (meal 0) is honoured, not left to the clock', r.meal === 0, String(r.meal));
+  check('today being the first day resolves to 0',
+    U.parse('', data, new Date(2026, 9, 17, 9)).day === 0);
+  check('toISO of junk is empty', U.toISO('') === '' && U.toISO('10//2026') === '' && U.toISO('/17/2026') === '');
+  check('open flag defaults off', U.parse('', data, now).openOnly === false);
+}
+
+console.log('\n7. diets the payload no longer carries');
+{
+  const withDishes = { ...data, dishes: [{ t: ['vg', 'gf'] }, { t: ['v'] }] };
+  const r = U.parse('#diet=h,vg', withDishes, now);
+  check('a diet no dish carries is dropped (halal, 2026-10-20)', !r.diets.has('h') && r.diets.has('vg'),
+    [...r.diets].join());
+  check('a carried diet survives', U.parse('#diet=v', withDishes, now).diets.has('v'));
+  check('no dishes field: codes are not dropped', U.parse('#diet=h', data, now).diets.has('h'));
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);
