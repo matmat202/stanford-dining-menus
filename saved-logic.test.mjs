@@ -180,5 +180,64 @@ console.log('\n8. calendar export (.ics)');
   }
 }
 
+console.log('\nN. last served (history.json)');
+{
+  const hist = { halls: ['Branner', 'FlorenceMoore', 'Stern'], meals: ['Breakfast', 'Lunch', 'Dinner'],
+    dishes: {
+      Pho: [['2026-10-29', 0, 2], ['2026-10-22', 2, 1], ['2026-10-22', 1, 1], ['2026-10-20', 0, 1]],
+      Tacos: [['2026-10-24', 0, 1]],
+    } };
+  const site = { halls: [{ id: 'Branner', name: 'Branner' }, { id: 'FlorenceMoore', name: 'Florence Moore' },
+                         { id: 'Stern', name: 'Stern' }] };
+  const now = new Date(2026, 9, 24, 12, 0);            // Sat 10/24, noon
+  const r = S.lastServed('Pho', hist, site, now);
+  check('a day AHEAD of today is never "last" (stale index holds the week ahead)', r && r.date === '2026-10-22',
+    JSON.stringify(r));
+  check('every hall serving it that day, by display name', r && r.halls.join('|') === 'Florence Moore|Stern');
+  check('days ago counted in calendar days', r && r.daysAgo === 2);
+  check('today does not count as last served (it may still be ahead)', S.lastServed('Tacos', hist, site, now) === null);
+  check('a dish the index never saw is null, not a crash', S.lastServed('Nope', hist, site, now) === null);
+  check('no index at all is null', S.lastServed('Pho', null, site, now) === null);
+  check('text: weekday, date, halls, age', S.lastServedText(r) === 'Last served Thu 10/22 at Florence Moore & Stern (2 days ago).',
+    S.lastServedText(r));
+  const many = { ...r, halls: ['A', 'B', 'C', 'D'], daysAgo: 1 };
+  check('text: more than two halls folds to +N, one day says yesterday',
+    S.lastServedText(many) === 'Last served Thu 10/22 at A, B +2 (yesterday).', S.lastServedText(many));
+  check('text of null is empty', S.lastServedText(null) === '');
+
+  // Real index, if built: every row points at a real hall and meal.
+  const hp = path.join(HERE, 'data', 'history.json');
+  if (fs.existsSync(hp)) {
+    const h = JSON.parse(fs.readFileSync(hp, 'utf8'));
+    const bad = Object.values(h.dishes).flat().filter(x => !h.halls[x[1]] || !h.meals[x[2]] || !/^\d{4}-\d\d-\d\d$/.test(x[0]));
+    check(`real history.json: ${Object.keys(h.dishes).length} dishes, every row resolves`, bad.length === 0, JSON.stringify(bad.slice(0, 3)));
+  }
+}
+
+console.log('\n9. default meal follows the hours, not a fixed clock');
+{
+  const site = JSON.parse(fs.readFileSync(path.join(HERE, 'data', 'site.json'), 'utf8'));
+  const M = site.meals, H = site.halls;
+  const sat = (h, m = 0) => new Date(2026, 9, 24, h, m);   // Sat 10/24
+  const sun = (h, m = 0) => new Date(2026, 9, 25, h, m);
+  const mon = (h, m = 0) => new Date(2026, 9, 26, h, m);
+  const dm = d => S.defaultMeal(M, H, d);
+  check('Sat 09:45 opens on Lunch (brunch open at Arrillaga/Lakeside)', dm(sat(9, 45)) === 'Lunch', dm(sat(9, 45)));
+  check('Sat 08:00 opens on Lunch (next to start; no weekend breakfast)', dm(sat(8)) === 'Lunch', dm(sat(8)));
+  check('Sun 06:00 opens on Lunch', dm(sun(6)) === 'Lunch', dm(sun(6)));
+  check('Sat 14:30 opens on Dinner', dm(sat(14, 30)) === 'Dinner', dm(sat(14, 30)));
+  check('Sat 22:00 stays on Dinner', dm(sat(22)) === 'Dinner', dm(sat(22)));
+  check('Mon 06:00 opens on Breakfast', dm(mon(6)) === 'Breakfast', dm(mon(6)));
+  check('Mon 09:30 opens on Breakfast (Arrillaga until 10:00)', dm(mon(9, 30)) === 'Breakfast', dm(mon(9, 30)));
+  check('Mon 10:15 opens on Lunch (every breakfast over)', dm(mon(10, 15)) === 'Lunch', dm(mon(10, 15)));
+  check('Mon 12:00 opens on Lunch', dm(mon(12)) === 'Lunch', dm(mon(12)));
+  check('Mon 15:30 opens on Dinner (every lunch over)', dm(mon(15, 30)) === 'Dinner', dm(mon(15, 30)));
+  check('Mon 23:00 stays on Dinner', dm(mon(23)) === 'Dinner', dm(mon(23)));
+  check('no hours anywhere falls back to the clock rule',
+    S.defaultMeal(M, [{ id: 'x' }], sat(9, 45)) === 'Breakfast' && S.defaultMeal(M, [], mon(12)) === 'Lunch');
+  check('overnight window is ignored, not treated as open',
+    S.defaultMeal(['Breakfast', 'Late'], [{ hours: { weekday: { Breakfast: ['7:00', '9:00'], Late: ['21:00', '1:00'] } } }], mon(23, 30)) === 'Breakfast');
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

@@ -3,8 +3,17 @@
 <title>Stanford Dining Menus</title>
 <meta name="description" content="Every Stanford dining hall menu, with hours, distance and allergen filters. Built for phones.">
 <meta name="theme-color" content="#8c1515">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://matmat202.github.io/stanford-dining-menus/">
+<meta property="og:title" content="Stanford Dining Menus">
+<meta property="og:description" content="Every Stanford dining hall menu, with hours, distance and allergen filters. Built for phones.">
+<meta property="og:image" content="https://matmat202.github.io/stanford-dining-menus/icons/icon-512.png">
+<meta property="og:image:width" content="512">
+<meta property="og:image:height" content="512">
+<meta name="twitter:card" content="summary">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Dining">
@@ -21,6 +30,7 @@
 <script src="search-logic.js"></script>
 <script src="avoid-logic.js"></script>
 <script src="trucks-logic.js"></script>
+<script src="plans-logic.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
@@ -251,6 +261,10 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .cafe li .dow,.venue li .dow{font-size:10px;font-weight:700;letter-spacing:.08em;
   text-transform:uppercase;color:var(--muted);flex:0 0 74px;padding-top:2px}
 .cafe li .span,.venue li .span{font-variant-numeric:tabular-nums}
+.plan summary{cursor:pointer;font-family:var(--f-display);font-weight:600;font-size:15px}
+.plan .pick{font-size:14px;color:var(--ink);margin-top:8px}
+.plan label{font-size:13px;color:var(--ink-2);display:flex;gap:8px;align-items:center;margin-top:8px}
+.plan input[type=number]{width:4.5em;font:inherit}
 .cafe .verbatim,.venue .verbatim{font-size:12.5px;color:var(--ink-2);margin-top:7px;
   border-left:2px solid var(--line);padding-left:9px}
 /* Sub-locations inside a library: the after-hours study rooms, reference desks. */
@@ -393,7 +407,7 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 // Campus wall clock: every hours source is Stanford time, so "now" and "today" are too.
 const campusNow=window.CafeLogic.campusDate;
 const S={data:null,day:0,meal:0,view:'halls',diets:new Set(),exclude:new Set(),avoid:[],q:'',
-         here:null,openOnly:false,cafes:null,libraries:null,rec:null,trucks:null,saved:new Set(),savedIndex:null};
+         here:null,openOnly:false,cafes:null,pay:null,cafePay:'',libraries:null,rec:null,trucks:null,saved:new Set(),savedIndex:null};
 let map=null,markers=[],youMarker=null;
 
 const el=(t,c,txt)=>{const n=document.createElement(t);if(c)n.className=c;
@@ -576,13 +590,15 @@ function renderSaved(){
   [...S.saved].sort().forEach(name=>{
     const li=el('li');li.append(el('div','dn',name));
     const idx=byName.get(name);
+    // history.json is optional: without it these lines read exactly as they did before.
+    const last=window.SavedLogic.lastServedText(window.SavedLogic.lastServed(name,S.history,d,campusNow()));
     if(idx===undefined){
-      li.append(el('div','gone','Not on any menu this week.'));
+      li.append(el('div','gone','Not on any menu this week.'+(last?' '+last:'')));
     }else{
       const r=window.SavedLogic.servingsFor(idx,S.savedIndex,d,campusNow());
       if(!r.upcoming.length){
         li.append(el('div','gone',
-          r.total?`No servings left this week (${r.total} earlier).`:'Not served this week.'));
+          (r.total?`No servings left this week (${r.total} earlier).`:'Not served this week.')+(last?' '+last:'')));
       }else if(r.everyday){
         const w=el('div','when');
         w.append(document.createTextNode(`Served most days — next: `));
@@ -732,7 +748,7 @@ function renderMap(rows){
 /* Open/closed reasoning lives in cafes-logic.js so it can be driven with a fabricated
    clock from node (cafes-logic.test.mjs, 26 assertions). Keeping a second copy inline
    would let the tested code and the shipped code drift apart. */
-const {daysLabel, isLate, venueStatus, fmt12} = window.CafeLogic;
+const {daysLabel, isLate, venueStatus, fmt12, mergePay} = window.CafeLogic;
 
 function renderCafes(){
   const v=document.getElementById('view-cafes');v.replaceChildren();
@@ -740,14 +756,33 @@ function renderCafes(){
   if(!data){const e=el('div','empty');e.append(el('b',null,'Café hours not loaded'));
     e.append(document.createTextNode('This section needs data/cafes.json.'));v.append(e);return;}
 
-  const rows=data.venues.map(x=>({...x,st:venueStatus(x.windows),
-                                  late:x.windows.some(isLate)}));
-  rows.sort((a,b)=>(b.st.open-a.st.open)||(b.late-a.late)||a.name.localeCompare(b.name));
+  // pay.json (which venues take Meal Plan / Cardinal Dollars, plus Tresidder hours) is
+  // optional: without it this is the cafés list exactly as before, with no filter chips.
+  const PAYF={mpd:'Meal Plan $',cd:'Cardinal $'};
+  const all=mergePay(data.venues,S.pay).map(x=>({...x,st:venueStatus(x.windows),
+                                  late:x.windows.some(isLate),noHours:!x.windows.length}));
+  const rows=S.cafePay&&S.pay?all.filter(r=>r.pay&&r.pay[S.cafePay]):all;
+  rows.sort((a,b)=>(b.st.open-a.st.open)||(a.noHours-b.noHours)||(b.late-a.late)
+                   ||a.name.localeCompare(b.name));
 
+  if(S.pay){
+    const c=el('div','chips');c.style.marginBottom='8px';
+    Object.entries(PAYF).forEach(([k,label])=>{
+      const b=el('button','chip diet','Takes '+label);b.type='button';
+      b.style.setProperty('--c','var(--open)');
+      b.setAttribute('aria-pressed',String(S.cafePay===k));
+      b.onclick=()=>{S.cafePay=S.cafePay===k?'':k;renderCafes();};
+      c.append(b);
+    });
+    v.append(c);
+  }
+  if(S.plans)v.append(planPicker());
   const openNow=rows.filter(r=>r.st.open).length;
   const lede=el('p','tally');
   lede.append(el('b',null,String(openNow)),
-    document.createTextNode(` of ${rows.length} cafés and retail spots open now`));
+    document.createTextNode(S.cafePay&&S.pay
+      ?` of ${rows.length} places that take ${PAYF[S.cafePay]} open now`
+      :` of ${rows.length} cafés and retail spots open now`));
   v.append(lede);
 
   rows.forEach(r=>{
@@ -756,8 +791,14 @@ function renderCafes(){
     const right=el('span','badges');
     if(r.late)right.append(el('span','latebadge','late'));
     right.append(el('span','pill '+(r.st.open?'open':'shut'),
-      r.st.open?'open':'closed'));
+      r.st.open?'open':r.noHours?'no hours':'closed'));
     h.append(right);card.append(h);
+    if(r.pay){
+      const pays=[r.pay.mpd&&'Meal Plan $',r.pay.cd&&'Cardinal $',r.pay.cashback&&'3% back on Cardinal $']
+        .filter(Boolean);
+      if(pays.length)card.append(el('div','desc','Takes '+pays.join(' · ')));
+    }
+    if(r.noHours)card.append(el('div','desc','R&DE\u2019s pages list no hours for it'));
     if(r.st.open&&r.st.until)
       card.append(el('div','desc',`Open until ${r.st.until}`));
     else if(r.st.opensAt)
@@ -784,8 +825,67 @@ function renderCafes(){
   });
   const note=el('p','tally');
   note.textContent='Cafés publish hours, not daily menus. Hours are read from R&DE\u2019s '
-    +'café page; the line under each venue is their wording, unedited.';
+    +'café page; the line under each venue is their wording, unedited.'
+    +(S.pay?' Meal Plan and Cardinal Dollars come from R&DE\u2019s Cardinal Dollars page, '
+      +'Tresidder hours from its Union Square page.':'');
   v.append(note);
+}
+
+/* Which meal plan wastes least. The reasoning (equal prices, the pick, the swipe buy-back
+   rate, the three-week switch window) lives in plans-logic.js (plans-logic.test.mjs). */
+const PLAN_KEY='dining.planMeals';
+function planPicker(){
+  const P=window.PlanLogic,d=S.plans;
+  const c=window.CafeLogic.campusDate();
+  const today=`${c.getFullYear()}-${String(c.getMonth()+1).padStart(2,'0')}-${String(c.getDate()).padStart(2,'0')}`;
+  const q=P.quarterFor(d.dates,today);
+  const box=el('details','cafe plan');
+  if(S.planOpen)box.open=true;
+  box.ontoggle=()=>{S.planOpen=box.open;};
+  box.append(el('summary',null,'Which meal plan wastes least?'));
+  if(!q){box.append(el('div','desc','R&DE\u2019s page lists no upcoming quarter.'));return box;}
+  let saved={};try{saved=JSON.parse(localStorage.getItem(PLAN_KEY)||'{}');}catch{}
+  const meals=Number.isFinite(saved.meals)?saved.meals:15,upper=saved.upper!==false;
+  const inL=el('label'),inp=el('input');inp.type='number';inp.min='0';inp.max='30';inp.value=String(meals);
+  inL.append(document.createTextNode('Hall meals I eat in a usual week'),inp);
+  const upL=el('label'),up=el('input');up.type='checkbox';up.checked=upper;
+  upL.append(up,document.createTextNode('I\u2019m past freshman year (the 12 is upper-class only)'));
+  const out=el('div');
+  box.append(inL,upL,out);
+  const usd=n=>'$'+(Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:n%1?2:0});
+  const fmtD=iso=>new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+  function draw(){
+    const m=Math.max(0,Math.min(30,Math.round(+inp.value||0)));
+    try{localStorage.setItem(PLAN_KEY,JSON.stringify({meals:m,upper:up.checked}));}catch{}
+    const r=P.compare(d,q.quarter,m,{upper:up.checked});out.replaceChildren();
+    if(!r)return;
+    if(r.pick!==null){
+      const p=r.rows.find(x=>x.swipes===r.pick),most=r.rows[0];
+      const line=el('div','pick');line.append(el('b',null,`The ${r.pick}.`));
+      let t=` All three cost the same this ${q.quarter} (${usd(p.cost)}).`;
+      if(p.short)t+=` It still leaves ${p.short} meal${p.short>1?'s':''} a week uncovered.`;
+      else{
+        t+=` It covers your ${m} meal${m===1?'':'s'} a week`+(p.mpd?` and adds ${usd(p.mpd)} in Meal Plan Dollars`:'')+'.';
+        if(p.swipes!==most.swipes&&most.wasted)t+=` On the ${most.swipes}, ${most.wasted} swipe${most.wasted>1?'s':''} a week would expire unused.`;
+      }
+      line.append(document.createTextNode(t));out.append(line);
+    }else out.append(el('div','pick','R&DE prices the plans differently this quarter, so there is no free swap; compare the numbers below.'));
+    const ul=el('ul');
+    r.rows.forEach(x=>{const li=el('li');
+      li.append(el('span','dow',x.swipes+' plan'),el('span','span',
+        `${usd(x.mpd)} Meal Plan $ · `+(x.short?`${x.short} meal${x.short>1?'s':''} short`:`${x.wasted} expire${x.wasted===1?'s':''} a week`)
+        +(x.eligible?'':' · upper-class only')));ul.append(li);});
+    out.append(ul);
+    if(r.rates.length)out.append(el('div','desc','A swipe given up comes back as '
+      +r.rates.map(x=>`${usd(x.perSwipe)} (${x.from}\u2192${x.to})`).join(' or ')
+      +' in Meal Plan Dollars. A swipe you would use is a whole meal, so if your weeks vary, enter a heavier one.'));
+    const w=P.switchWindow(d.dates,today);
+    if(w)out.append(el('div','desc',w.open?`You can still switch for ${w.quarter} until ${fmtD(w.until)}.`
+      :`Next chance to switch: ${w.quarter}, ${fmtD(w.from)} \u2013 ${fmtD(w.until)} (the first three weeks).`));
+    out.append(el('div','verbatim','From R&DE\u2019s meal plan page: prices per quarter, Meal Plan Dollars, and plan dates.'));
+  }
+  inp.oninput=draw;up.onchange=draw;draw();
+  return box;
 }
 
 /* Library hours are date-keyed absolute instants, not the recurring weekday windows
@@ -1117,8 +1217,7 @@ function boot(d){
   S.day=link.day;
   if(link.meal>=0){S.meal=link.meal;}
   else{
-    const c=campusNow(),h=c.getHours()+c.getMinutes()/60;
-    const want=h<10.5?'Breakfast':h<16?'Lunch':'Dinner';
+    const want=window.SavedLogic.defaultMeal(d.meals,d.halls,campusNow());
     S.meal=Math.max(0,d.meals.indexOf(want));
   }
   S.view=link.view;S.diets=link.diets;S.exclude=link.exclude;
@@ -1188,10 +1287,16 @@ function boot(d){
 // unaffected, so it is fetched independently rather than blocking boot.
 fetch('data/cafes.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.cafes=c;if(S.data&&S.view==='cafes')renderCafes();}).catch(()=>{});
+fetch('data/pay.json').then(r=>r.ok?r.json():null)
+  .then(c=>{S.pay=c;if(S.data&&S.cafes&&S.view==='cafes')renderCafes();}).catch(()=>{});
+fetch('data/plans.json').then(r=>r.ok?r.json():null)
+  .then(c=>{S.plans=c;if(S.data&&S.cafes&&S.view==='cafes')renderCafes();}).catch(()=>{});
 fetch('data/libraries.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.libraries=c;if(S.data&&S.view==='libraries')renderLibraries();}).catch(()=>{});
 fetch('data/rec.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.rec=c;if(S.data&&S.view==='rec')renderRec();}).catch(()=>{});
+fetch('data/history.json').then(r=>r.ok?r.json():null)
+  .then(h=>{S.history=h;if(S.data&&S.saved&&S.saved.size)renderSaved();}).catch(()=>{});
 fetch('data/trucks.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.trucks=c;if(S.data&&S.view==='trucks')renderTrucks();}).catch(()=>{});
 

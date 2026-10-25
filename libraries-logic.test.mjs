@@ -134,6 +134,13 @@ console.log('\n8. against the real scraped payload, not a fabrication');
     check('data/libraries.json present', false, 'run `python3 scrape_libraries.py` first');
   } else {
     const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+    // The payload is a ROLLING week. Probe days must come from the payload itself:
+    // the dates this block used to hard-code aged out of the window and the
+    // after-hours assertion then failed on correct data, blocking a publish.
+    const week = d.venues[0].hours.map(h => h.day);
+    const DAY0 = week[0];
+    const nextDay = (day) =>
+      new Date(Date.parse(day + 'T12:00:00-07:00') + 864e5).toISOString().slice(0, 10);
     check('24 libraries', d.venues.length === 24, `got ${d.venues.length}`);
     check('every venue has 7 day records',
       d.venues.every(v => v.hours.length === 7));
@@ -142,7 +149,7 @@ console.log('\n8. against the real scraped payload, not a fabrication');
     // The whole point of the probe: every one of these must evaluate without throwing.
     let threw = null;
     for (const v of d.venues) {
-      for (const hhmm of ['2026-10-19T03:00', '2026-10-19T10:00', '2026-10-19T23:59']) {
+      for (const hhmm of [`${DAY0}T03:00`, `${DAY0}T10:00`, `${DAY0}T23:59`]) {
         try { L.libraryStatus(v.hours, pt(hhmm)); L.statusLabel(L.libraryStatus(v.hours, pt(hhmm))); }
         catch (e) { threw = `${v.id} @ ${hhmm}: ${e.message}`; }
       }
@@ -150,7 +157,7 @@ console.log('\n8. against the real scraped payload, not a fabrication');
     check('no venue throws at 03:00, 10:00 or 23:59', threw === null, threw || '');
     const slac = d.venues.find(v => v.id === 'slac');
     check('slac is closed all week',
-      slac && L.libraryStatus(slac.hours, pt('2026-10-19T10:00')).neverThisWeek === true);
+      slac && L.libraryStatus(slac.hours, pt(`${DAY0}T10:00`)).neverThisWeek === true);
     check('slac sorts last, after the open libraries',
       d.venues[d.venues.length - 1].id === 'slac');
     const green = d.venues.find(v => v.id === 'green');
@@ -158,12 +165,21 @@ console.log('\n8. against the real scraped payload, not a fabrication');
     const night = green.locations.find(s => /after hours|all.night/i.test(s.name + s.id));
     check('green carries the after-hours study room', !!night, green.locations.map(s => s.id).join());
     if (night) {
-      // 03:00 on a Tuesday is precisely when this matters and the main desk is shut.
-      const nightSt = L.libraryStatus(night.hours, pt('2026-10-20T03:00'));
-      const deskSt = L.libraryStatus(green.hours, pt('2026-10-20T03:00'));
-      check('after-hours room open at 3am Tuesday', nightSt.open === true,
-        JSON.stringify(nightSt));
-      check('while the main desk is shut', deskSt.open === false);
+      // 03:00 is precisely when this matters and the main desk is shut. Find a night
+      // in THIS week's payload whose span crosses midnight, and probe the morning it
+      // runs into — the span opens 23:55 on `day` and shuts 08:00 the day after.
+      const crosses = night.hours.find(h =>
+        !h.closed && h.closes_at && h.closes_at.slice(0, 10) === nextDay(h.day));
+      check('an after-hours span crosses midnight this week', !!crosses,
+        JSON.stringify(night.hours.map(h => h.day + (h.closed ? ' closed' : ''))));
+      if (crosses) {
+        const at = pt(`${nextDay(crosses.day)}T03:00`);
+        const nightSt = L.libraryStatus(night.hours, at);
+        const deskSt = L.libraryStatus(green.hours, at);
+        check(`after-hours room open at 3am ${nextDay(crosses.day)}`, nightSt.open === true,
+          JSON.stringify(nightSt));
+        check('while the main desk is shut', deskSt.open === false, JSON.stringify(deskSt));
+      }
     }
     check('every sub-location opens at some point',
       d.venues.every(v => v.locations.every(s => s.hours.some(h => !h.closed))));

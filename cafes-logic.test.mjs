@@ -129,5 +129,38 @@ console.log('\n7. boundaries the earlier cases never touched (bin/mutate survivo
   check('unsorted input is sorted first', L.daysLabel([4,0,2,1,3]) === 'Mon–Fri', L.daysLabel([4,0,2,1,3]));
 }
 
+console.log('\n8. Meal Plan / Cardinal Dollars join (fixtures from 2026-10-25)');
+// publish.sh copies the *.test.mjs files to the repo root, where backstop.sh runs them in
+// CI without fixtures/. There the join section is skipped, and it says that it skipped.
+if (!fs.existsSync(path.join(HERE, '../fixtures/pay-2026-10-25.json'))) {
+  console.log('  skip (fixtures/ not present; this copy is the published one)');
+} else {
+  const cafes = JSON.parse(fs.readFileSync(path.join(HERE, '../fixtures/cafes-2026-10-25.json'), 'utf8'));
+  const pay = JSON.parse(fs.readFileSync(path.join(HERE, '../fixtures/pay-2026-10-25.json'), 'utf8'));
+  const rows = L.mergePay(cafes.venues, pay);
+  const by = Object.fromEntries(rows.map(r => [r.name, r]));
+  check('TAP (cafés page) joins "The Axe & Palm at Old Union*"', by['The Axe & Palm (TAP)']?.pay?.mpd === true);
+  check('"Olives @ Bldg. 160" joins "Olives at Bldg. 160"', by['Olives at Bldg. 160']?.pay?.mpd === true);
+  check('"Med Café" joins "The Med Café"', by['The Med Café']?.pay?.mpd === true);
+  check('Redwood City Cardinal Café joins, Cardinal $ only', by['Cardinal Café']?.pay?.cd === true && by['Cardinal Café'].pay.mpd === false);
+  check('Decadence and Decadence Mini Market stay two rows', !!by['Decadence'] && !!by['Decadence Mini Market']);
+  check('every accepts row lands on exactly one venue', rows.filter(r => r.pay).length === pay.accepts.length,
+    `${rows.filter(r => r.pay).length} vs ${pay.accepts.length}`);
+  check('no venue appears twice', new Set(rows.map(r => L.payKey(r.name))).size === rows.length);
+  check('Ray’s Grill, not in the table, has pay null', by['Ray’s Grill']?.pay === null);
+  check('UMe Tea is listed with no hours rather than dropped', by['UMe Tea inside The AXe & Palm']?.windows.length === 0);
+  check('11 venues take Meal Plan $', rows.filter(r => r.pay?.mpd).length === 11);
+  // The 2025-11 ask: "where can I use my dining dollars on the weekends?" Saturday 8 pm.
+  const satEve = at(6, 20);
+  const open = rows.filter(r => r.pay?.mpd && L.venueStatus(r.windows, satEve).open).map(r => r.name).sort();
+  check('Saturday 8pm: TAP, EVGR, Market at Munger take MP$ and are open',
+    JSON.stringify(open) === JSON.stringify(['EVGR Pub & Brewery', 'The Axe & Palm (TAP)', 'The Market at Munger']),
+    JSON.stringify(open));
+  check('Saturday 10pm adds Arrillaga Nights', rows.filter(r => r.pay?.mpd && L.venueStatus(r.windows, at(6, 22)).open)
+    .some(r => r.name === 'Arrillaga Nights @ AFDC'));
+  check('no pay.json: every venue has pay null, list unchanged',
+    L.mergePay(cafes.venues, null).every(r => r.pay === null) && L.mergePay(cafes.venues, null).length === cafes.venues.length);
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

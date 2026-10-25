@@ -11,7 +11,7 @@
 const VERSION = 'dining-v9';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './cafes-logic.js', './libraries-logic.js',
-  './saved-logic.js', './walk-logic.js', './url-state.js', './allergen-check.js', './search-logic.js', './avoid-logic.js', './trucks-logic.js',
+  './saved-logic.js', './walk-logic.js', './url-state.js', './allergen-check.js', './search-logic.js', './avoid-logic.js', './trucks-logic.js', './plans-logic.js',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
 ];
 

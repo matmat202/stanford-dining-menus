@@ -78,7 +78,47 @@
     return { open: false };
   }
 
-  const api = { jsDayToIdx, campusDate, CAMPUS_TZ, toMin, fmt12, daysLabel, isLate, venueStatus, DOW_SHORT };
+  /**
+   * One key per venue across R&DE's pages, which name the same place differently:
+   * "The Axe & Palm (TAP)" / "The Axe & Palm at Old Union*", "Olives at Bldg. 160" /
+   * "Olives @ Bldg. 160", "The Med Café" / "Med Café". Exact keys only: a prefix match
+   * would make "Decadence" swallow "Decadence Mini Market".
+   */
+  const KEY_ALIAS = { cardinalcaferedwoodcity: 'cardinalcafe' };
+  function payKey(name) {
+    const k = String(name).normalize('NFKD').replace(/[̀-ͯ​﻿]/g, '')
+      .toLowerCase().replace(/\(.*?\)/g, ' ').replace(/@/g, ' at ')
+      .replace(/\bat old union\b/g, ' ').replace(/^\s*the\s+/, '').replace(/[^a-z0-9]/g, '');
+    return KEY_ALIAS[k] || k;
+  }
+
+  /**
+   * Cafés page venues + pay.json -> one list, each row with `pay` ({cd, mpd, cashback})
+   * when R&DE's accepts table names it, or `pay: null` when it does not — which on that
+   * table means "not a location accepting either", so filters treat it as no. Venues with
+   * hours only on the Tresidder/Markets pages are appended; accepts rows with no hours
+   * anywhere (UMe Tea, the late-night halls) are appended with empty windows, so a
+   * "takes Meal Plan $" list is complete even where it cannot say open or closed.
+   */
+  function mergePay(cafeVenues, pay) {
+    const acc = new Map(((pay && pay.accepts) || []).map(a => [payKey(a.name), a]));
+    const out = [], seen = new Set();
+    const add = v => {
+      const k = payKey(v.name);
+      if (seen.has(k)) return;
+      seen.add(k);
+      const a = acc.get(k);
+      out.push({ ...v, windows: v.windows || [], hours_text: v.hours_text || [],
+                 pay: a ? { cd: !!a.cd, mpd: !!a.mpd, cashback: !!a.cashback } : null });
+    };
+    (cafeVenues || []).forEach(add);
+    ((pay && pay.venues) || []).forEach(add);
+    for (const a of acc.values()) add({ name: a.name.replace(/\*+$/, '').trim(), description: '' });
+    return out;
+  }
+
+  const api = { jsDayToIdx, campusDate, CAMPUS_TZ, toMin, fmt12, daysLabel, isLate, venueStatus, DOW_SHORT,
+                payKey, mergePay };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CafeLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

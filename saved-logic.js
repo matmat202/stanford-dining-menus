@@ -162,7 +162,82 @@
     return L.map(fold).join('\r\n') + '\r\n';
   }
 
-  const api = { buildIndex, isUpcoming, servingsFor, calendarSlots, toICS, fold, MANY_DAYS, MAX_SHOWN };
+  /* ---- last served ---------------------------------------------------------
+   * The week's payload forgets a dish the day it scrolls out, and 44% of archived dishes
+   * (260/592, measured 10-24) were served in the past week but not in the week ahead —
+   * exactly the saved dishes this view otherwise says nothing useful about. history.json
+   * (archive.py index) remembers them. It also holds days ahead of its build, so only
+   * days strictly before `today` count: a stale index must not call next week "last".
+   */
+  /** 'YYYY-MM-DD' for the calendar day of `now` (campus time is the caller's job). */
+  const ymd = now => `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+  /** -> {date:'YYYY-MM-DD', daysAgo, meal, halls:[name]} or null. */
+  function lastServed(name, hist, data, now = new Date()) {
+    const rows = hist && hist.dishes && hist.dishes[name];
+    if (!rows) return null;
+    const today = ymd(now);
+    const past = rows.filter(r => r[0] < today);
+    if (!past.length) return null;
+    const date = past.reduce((a, r) => r[0] > a ? r[0] : a, '');
+    const on = past.filter(r => r[0] === date);
+    const names = new Map((data && data.halls || []).map(h => [h.id, h.name]));
+    const halls = [...new Set(on.map(r => {
+      const id = hist.halls[r[1]];
+      return names.get(id) || id;
+    }))].sort();
+    const [y, m, d] = date.split('-').map(Number);
+    const daysAgo = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      - new Date(y, m - 1, d)) / 86400000);
+    return { date, daysAgo, meal: hist.meals[on[0][2]], halls };
+  }
+
+  /** "Last served Wed 10/22 at Branner, Stern (2 days ago)" — the line the view shows. */
+  function lastServedText(r) {
+    if (!r) return '';
+    const [y, m, d] = r.date.split('-').map(Number);
+    const dow = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(y, m - 1, d).getDay()];
+    const where = r.halls.length > 2 ? `${r.halls.slice(0, 2).join(', ')} +${r.halls.length - 2}`
+      : r.halls.join(' & ');
+    const ago = r.daysAgo === 1 ? 'yesterday' : `${r.daysAgo} days ago`;
+    return `Last served ${dow} ${m}/${d} at ${where} (${ago}).`;
+  }
+
+  /**
+   * The meal the page should open on: the one some hall is serving right now, else the
+   * next one any hall starts today, else the day's last (after dinner you still want to
+   * see what dinner was). Read from the hours, not a fixed clock: R&DE serves weekend
+   * brunch under "Lunch" from 9:30, and a fixed "Breakfast before 10:30" opened every
+   * Saturday and Sunday morning on eight "no breakfast service" cards while brunch was
+   * already open. Falls back to that old clock rule only when no hall lists hours.
+   * @param halls  site payload halls, each with optional hours.{weekday,weekend}
+   * @param now    a Date already in campus time
+   * @returns a meal name from `meals`
+   */
+  function defaultMeal(meals, halls, now) {
+    const hm = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const mins = now.getHours() * 60 + now.getMinutes();
+    const wk = (now.getDay() === 0 || now.getDay() === 6) ? 'weekend' : 'weekday';
+    let current = -1, next = -1, last = -1;
+    meals.forEach((name, mi) => {
+      for (const h of halls) {
+        const w = ((h.hours || {})[wk] || {})[name];
+        if (!w) continue;
+        const [a, b] = [hm(w[0]), hm(w[1])];
+        if (b < a) continue;                       // overnight window: not a meal slot
+        if (mins >= a && mins <= b && current === -1) current = mi;
+        if (mins < a && (next === -1 || a < next.start)) next = { mi, start: a };
+        if (last === -1 || b > last.end) last = { mi, end: b };
+      }
+    });
+    if (current !== -1) return meals[current];
+    if (next !== -1) return meals[next.mi];
+    if (last !== -1) return meals[last.mi];
+    const h = mins / 60;
+    return h < 10.5 ? 'Breakfast' : h < 16 ? 'Lunch' : 'Dinner';
+  }
+
+  const api = { defaultMeal, lastServed, lastServedText, buildIndex, isUpcoming, servingsFor, calendarSlots, toICS, fold, MANY_DAYS, MAX_SHOWN };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SavedLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);
