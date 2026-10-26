@@ -325,6 +325,7 @@ footer a{color:var(--accent)}
   .hall > summary .hstat .reach{display:inline;margin-top:0}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 </style>
 
 <div class="wrap">
@@ -353,6 +354,7 @@ footer a{color:var(--accent)}
   <div id="stale"></div>
   <div id="saved-panel"></div>
   <p class="tally" id="tally"></p>
+  <div class="sr-only" id="said" role="status"></div>
 
   <div id="view-halls"><div class="halls" id="halls"></div></div>
   <div id="view-compare" class="hidden"></div>
@@ -1172,6 +1174,7 @@ function syncHash(){
   }catch{}
 }
 
+let saidTally=null;
 function render(){
   // Rebuilding the buttons drops focus to <body>; put it back in the same slot.
   const slot=window.KeysLogic.focusSlot(document.activeElement);
@@ -1188,6 +1191,11 @@ function render(){
     el('b',null,String(shown.length)),
     document.createTextNode(` hall${shown.length===1?'':'s'}`),
     document.createTextNode(openNow?` · ${openNow} serving now`:''));
+  // A search or filter redraws the halls in silence for a screen reader: announce the
+  // tally when it changes, but not on first paint, which the reader reads anyway
+  // (AX-tree probe of the live page, 2026-10-26: no live region at all).
+  if(saidTally!==null&&saidTally!==t.textContent)document.getElementById('said').textContent=t.textContent;
+  saidTally=t.textContent;
 
   document.getElementById('view-halls').classList.toggle('hidden',S.view!=='halls');
   document.getElementById('view-compare').classList.toggle('hidden',S.view!=='compare');
