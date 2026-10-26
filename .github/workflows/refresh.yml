@@ -7,6 +7,15 @@ on:
     - cron: "17 15 * * *"   # 08:17 PDT, ~3.5h after the laptop's usual run
     - cron: "17 3 * * *"    # 20:17 PDT, so a missed day is caught by evening
   workflow_dispatch:
+    inputs:
+      force:
+        # backstop.sh declines a live payload under MAX_AGE_H, which is the whole point of
+        # a backstop and also makes it impossible to prove by hand on a day the laptop ran.
+        # This input exists so a verification dispatch does not need the workflow edited and
+        # reverted. Scheduled runs pass no inputs, so they stay gated.
+        description: "Scrape even if the live payload is still fresh (verification runs only)"
+        type: boolean
+        default: false
 permissions:
   contents: write
 concurrency:
@@ -22,3 +31,5 @@ jobs:
         with:
           node-version: 22
       - run: bash backstop.sh --push
+        env:
+          BACKSTOP_FORCE: ${{ inputs.force && '1' || '0' }}
