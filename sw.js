@@ -8,10 +8,10 @@
  * running the previous deploy's cached url-state.js / cafes-logic.js is version skew
  * (sw.test.mjs). Only icons and the manifest, which nothing else depends on, are cache-first.
  */
-const VERSION = 'dining-v9';
+const VERSION = 'dining-v10';
 const SHELL = [
   './', './index.html', './manifest.webmanifest', './cafes-logic.js', './libraries-logic.js',
-  './saved-logic.js', './walk-logic.js', './url-state.js', './allergen-check.js', './search-logic.js', './avoid-logic.js', './trucks-logic.js', './plans-logic.js',
+  './saved-logic.js', './walk-logic.js', './url-state.js', './allergen-check.js', './search-logic.js', './avoid-logic.js', './trucks-logic.js', './plans-logic.js', './keys-logic.js',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png',
 ];
 

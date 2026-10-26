@@ -31,6 +31,7 @@
 <script src="avoid-logic.js"></script>
 <script src="trucks-logic.js"></script>
 <script src="plans-logic.js"></script>
+<script src="keys-logic.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
@@ -340,7 +341,7 @@ footer a{color:var(--accent)}
     <div class="scroller" id="days"></div>
     <div class="seg" id="meals"></div>
     <div class="toolbar">
-      <input type="search" id="q" placeholder="Search dishes or ingredients" autocomplete="off">
+      <input type="search" id="q" placeholder="Search dishes or ingredients" autocomplete="off" aria-keyshortcuts="/">
       <button class="iconbtn" id="btn-filters" type="button" aria-pressed="false">Filters</button>
       <button class="iconbtn" id="btn-near" type="button">Near me</button>
       <button class="iconbtn" id="btn-share" type="button" aria-label="Copy a link to this view">Share</button>
@@ -1172,7 +1173,10 @@ function syncHash(){
 }
 
 function render(){
+  // Rebuilding the buttons drops focus to <body>; put it back in the same slot.
+  const slot=window.KeysLogic.focusSlot(document.activeElement);
   buildControls();buildDrawer();
+  window.KeysLogic.restoreFocus(slot,document);
   if(S.data)syncHash();
   const rows=currentHalls();
   const shown=rows.filter(r=>r.matched.length&&(!openFilterActive()||r.st.k==='open'));
@@ -1281,6 +1285,20 @@ function boot(d){
       btn.textContent='Near me';btn.classList.add('on');render();},
       ()=>{btn.textContent='Location off';},
       {enableHighAccuracy:true,timeout:15000,maximumAge:60000});};
+  document.addEventListener('keydown',e=>{
+    const a=window.KeysLogic.action(e);if(!a)return;
+    const q=document.getElementById('q');
+    if(a.type==='search'){e.preventDefault();q.focus();q.select();}
+    else if(a.type==='clear'){
+      if(q.value){q.value='';S.q='';render();}else q.blur();}
+    else if(a.type==='day'){
+      const n=window.KeysLogic.stepDay(S.day,a.delta,S.data.days.length);
+      if(n===null)return;e.preventDefault();
+      const inDays=!!(e.target.closest&&e.target.closest('#days'));
+      S.day=n;render();
+      // On the day strip, focus follows the selection rather than staying on the old slot.
+      if(inDays)document.querySelectorAll('#days button')[n].focus();}
+  });
   render();
   setInterval(render,60000);   // keep "closes in N min" honest
 }
