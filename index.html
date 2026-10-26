@@ -32,6 +32,7 @@
 <script src="trucks-logic.js"></script>
 <script src="plans-logic.js"></script>
 <script src="keys-logic.js"></script>
+<script src="pin-logic.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
@@ -228,6 +229,9 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .star{background:none;border:none;cursor:pointer;padding:2px 5px;margin:-2px 0 -2px -4px;
   font-size:16px;line-height:1;color:var(--muted);flex:0 0 auto;border-radius:4px}
 .star:hover{color:var(--soon)}
+.pin{background:none;border:1px solid var(--line);cursor:pointer;margin-left:8px;padding:1px 7px;
+  font:500 11.5px/1.4 var(--f-ui);letter-spacing:0;color:var(--muted);border-radius:99px;vertical-align:2px}
+.pin[aria-pressed="true"]{color:var(--ink);border-color:var(--soon)}
 .star[aria-pressed="true"]{color:var(--soon)}
 .saved{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--soon);
   border-radius:var(--r);box-shadow:var(--shadow);padding:12px 13px;margin-bottom:12px}
@@ -410,7 +414,7 @@ const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 // Campus wall clock: every hours source is Stanford time, so "now" and "today" are too.
 const campusNow=window.CafeLogic.campusDate;
 const S={data:null,day:0,meal:0,view:'halls',diets:new Set(),exclude:new Set(),avoid:[],q:'',
-         here:null,openOnly:false,cafes:null,pay:null,cafePay:'',libraries:null,rec:null,trucks:null,saved:new Set(),savedIndex:null};
+         here:null,openOnly:false,cafes:null,pay:null,cafePay:'',libraries:null,rec:null,trucks:null,saved:new Set(),savedIndex:null,pinned:new Set()};
 let map=null,markers=[],youMarker=null;
 
 const el=(t,c,txt)=>{const n=document.createElement(t);if(c)n.className=c;
@@ -497,7 +501,9 @@ function currentHalls(){
     rows.push({hall:h,hi,items,matched,total:refs.length,st,dist,reach});
   });
   // An open hall that shuts before you could walk there ranks below the ones you can reach.
+  // A pinned hall is an explicit choice, so it outranks distance, but not status (pin-logic.js).
   rows.sort((a,b)=>(WalkLogic.rank(a.st,a.reach)-WalkLogic.rank(b.st,b.reach))
+    ||PinLogic.cmp(S.pinned,a.hall.name,b.hall.name)
     ||((a.dist??1e9)-(b.dist??1e9))
     ||a.hall.name.localeCompare(b.hall.name));
   return rows;
@@ -638,9 +644,18 @@ function renderHalls(rows){
   const shown=rows.filter(r=>r.matched.length&&(!openFilterActive()||r.st.k==='open'));
   shown.forEach((r,idx)=>{
     const card=el('details','hall');
-    if(idx<2||shown.length<=3)card.open=true;
+    const pinned=S.pinned.has(r.hall.name);
+    if(idx<2||shown.length<=3||pinned)card.open=true;
     const sum=el('summary');
-    sum.append(el('div','hname',r.hall.name));
+    const hn=el('div','hname',r.hall.name);
+    const pin=el('button','pin',pinned?'pinned':'pin');pin.type='button';
+    pin.setAttribute('aria-pressed',String(pinned));
+    pin.setAttribute('aria-label',(pinned?'Unpin ':'Pin ')+r.hall.name+(pinned?'':' to the top'));
+    // Inside <summary>, like the dish star: without this a click would also fold the card.
+    pin.onclick=e=>{e.preventDefault();e.stopPropagation();
+      S.pinned=PinLogic.toggle(S.pinned,r.hall.name);PinLogic.save(localStorage,S.pinned);render();};
+    hn.append(pin);
+    sum.append(hn);
     if(r.hall.concept&&r.hall.concept!==r.hall.name)
       sum.append(el('div','hconcept',r.hall.concept));
     const stat=el('div','hstat');
@@ -1222,6 +1237,7 @@ function boot(d){
   S.data=d;
   S.saved=loadSaved();
   S.avoid=AvoidLogic.load(localStorage);
+  S.pinned=PinLogic.load(localStorage);
   const today=campusNow();today.setHours(0,0,0,0);
   const ti=d.days.findIndex(x=>parseDay(x).getTime()===today.getTime());
 
