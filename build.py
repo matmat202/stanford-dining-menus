@@ -28,6 +28,27 @@ JUNK_ALLERGENS = {"TRACEALLERGENS"}
 KNOWN_ALLERGENS = {"COCONUT", "EGG", "FISH", "MILK", "PEANUTS", "SESAME",
                    "SHELLFISH", "SOY", "TREENUTS", "WHEAT", "GLUTEN"}
 
+# A hall badge ("vegetarian", "kosher") reads as a promise about every dish on the card
+# under it. halls.json carried R&DE's concept names as badges, and measured 2026-10-25
+# over 15 days of history they were false: Gerhard Casper served bacon on 6 days and
+# grilled chicken on 10 (67% veg-tagged, the same as every other hall), and Florence
+# Moore served bacon and pork with one kosher-tagged dish all term. So the badge ships
+# only when this week's menu backs it; the concept name still shows either way.
+TOP9 = KNOWN_ALLERGENS - {"COCONUT"}
+BADGE_SHARE = 0.9
+
+
+def specialty_holds(specialty, hall_dishes):
+    """True when the hall's dishes this week support its badge. Unknown badges fail closed."""
+    if not hall_dishes:
+        return False
+    if specialty == "allergen-friendly":
+        return not any(a.strip() in TOP9 for d in hall_dishes for a in d["a"].split(","))
+    want = {"vegetarian": {"v", "vg"}, "vegan": {"vg"}, "kosher": {"k"}}.get(specialty)
+    if want is None:
+        return False
+    return sum(bool(want & set(d["t"])) for d in hall_dishes) >= BADGE_SHARE * len(hall_dishes)
+
 
 def clean_allergens(raw):
     toks = [t.strip() for t in (raw or "").split(",") if t.strip()]
@@ -82,6 +103,8 @@ def main():
     # allergen vocabulary, for the exclusion filter
     allergens = sorted({a.strip() for d in dishes for a in d["a"].split(",") if a.strip()})
 
+    dropped_badges = []
+
     def hall_entry(h):
         m = halls_meta.get(h, {})
         e = {"id": h, "name": m.get("name", h)}
@@ -89,6 +112,11 @@ def main():
                   "hours", "latenight"):
             if k in m:
                 e[k] = m[k]
+        if "specialty" in e:
+            hi = str(halls_seen.index(h))
+            mine = [dishes[i] for k, refs in menus.items() if k.split("|")[0] == hi for i in refs]
+            if not specialty_holds(e["specialty"], mine):
+                dropped_badges.append(f"{h} ({e.pop('specialty')})")
         return e
 
     out = {
@@ -116,6 +144,9 @@ def main():
     empty = [h for h in raw["halls"] if h not in halls_seen]
     if empty:
         print(f"NOTE halls with no data at all: {', '.join(empty)}")
+    if dropped_badges:
+        print(f"NOTE hall badge not backed by this week's menu, not shipped: "
+              f"{', '.join(dropped_badges)}")
     if junk_hits:
         print(f"NOTE dropped R&DE's TRACEALLERGENS placeholder from {junk_hits} dish rows")
     if unknown_allergens:
