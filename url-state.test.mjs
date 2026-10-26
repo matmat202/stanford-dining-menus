@@ -110,5 +110,9 @@ console.log('\n7. diets the payload no longer carries');
   check('no dishes field: codes are not dropped', U.parse('#diet=h', data, now).diets.has('h'));
 }
 
+// bin/mutate 2026-10-26: the "today is not in this week" fallback was never asked for.
+check('no date in the link and today outside the week -> the first day', U.parse('', data, new Date(2027, 0, 1, 12)).day === 0,
+  String(U.parse('', data, new Date(2027, 0, 1, 12)).day));
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

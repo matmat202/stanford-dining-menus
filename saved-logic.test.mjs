@@ -239,5 +239,63 @@ console.log('\n9. default meal follows the hours, not a fixed clock');
     S.defaultMeal(['Breakfast', 'Late'], [{ hours: { weekday: { Breakfast: ['7:00', '9:00'], Late: ['21:00', '1:00'] } } }], mon(23, 30)) === 'Breakfast');
 }
 
+// bin/mutate, 2026-10-26: 40 of 160 survived. Every check below was written after planting
+// the survivor and printing what the function returned.
+console.log('\n10. edges the earlier sections never stood on (bin/mutate survivors)');
+{
+  const H = { weekday: { Breakfast: ['7:30', '10:00'], Lunch: ['11:00', '13:30'], Dinner: ['17:00', '20:00'] },
+              weekend: { Lunch: ['10:30', '13:30'], Dinner: ['17:00', '20:00'] } };
+  const cd = {
+    halls: [{ id: 'Arr', name: 'Arrillaga', hours: H }, { id: 'Wil', name: 'Wilbur', hours: H }],
+    days: ['10/17/2026', '10/18/2026', '10/19/2026'], meals: ['Breakfast', 'Lunch', 'Dinner'],
+    dishes: [{ n: 'Pho' }, { n: 'Rice' }],
+    // dish 0 at Wilbur only, dish 1 at Arrillaga only, so dish order inserts Wilbur first
+    menus: { '1|2|1': [0], '1|0|2': [0], '0|0|2': [1], '0|0|1': [1], '0|1|2': [1] },
+  };
+  const ci = S.buildIndex(cd);
+  const keys = sl => sl.map(e => `${e.hall[0]}${e.dayIdx}${e.mealIdx}`).join();
+  const all = S.calendarSlots([0, 1], ci, cd, at(0, 8)).slots;
+  check('calendar events sorted day, meal, then hall, from input that is none of those',
+    keys(all) === 'A01,A02,W02,A12,W21', keys(all));
+  check('a window ending exactly now is over; a minute before it is not',
+    keys(S.calendarSlots([1], ci, cd, at(0, 13, 30)).slots) === 'A02,A12'
+    && keys(S.calendarSlots([1], ci, cd, at(0, 13, 29)).slots) === 'A01,A02,A12'
+    && keys(S.calendarSlots([0], ci, cd, at(0, 20)).slots) === 'W21'
+    && keys(S.calendarSlots([0], ci, cd, at(0, 19, 59)).slots) === 'W02,W21');
+  check('"over" is only for TODAY: at 21:00, later days\' 13:30 lunches stay',
+    keys(S.calendarSlots([0, 1], ci, cd, at(0, 21)).slots) === 'A12,W21');
+  const ics = S.toICS(S.calendarSlots([0, 1], ci, cd, at(0, 8)).slots.slice(0, 1), cd, new Date(0)).replace(/\r\n /g, '');
+  const two = { ...cd, menus: { '0|0|1': [0, 1] } };
+  const ics2 = S.toICS(S.calendarSlots([0, 1], S.buildIndex(two), two, at(0, 8)).slots, two, new Date(0)).replace(/\r\n /g, '');
+  check('one dish names itself, two say "2 saved dishes"',
+    ics.includes('SUMMARY:Rice — lunch at Arrillaga') && ics2.includes('SUMMARY:2 saved dishes — lunch at Arrillaga'));
+  const rev = { ...data, menus: { '0|1|2': [5], '0|1|1': [5], '0|1|0': [5], '0|2|0': [5] } };
+  const r = S.servingsFor(5, S.buildIndex(rev), rev, at(0, 8));
+  check('same-day meals sorted from three handed over in reverse', r.upcoming.map(s => `${s.dayIdx}${s.mealIdx}`).join() === '10,11,12,20',
+    r.upcoming.map(s => `${s.dayIdx}${s.mealIdx}`).join());
+  const many = { ...data, menus: {} };
+  for (let d = 0; d < 3; d++) for (let m = 0; m < 3; m++) many.menus[`0|${d}|${m}`] = [1];
+  const rm = S.servingsFor(1, S.buildIndex(many), many, at(0, 6));
+  check('the cap is 4 shown, 5 more (literal: S.MAX_SHOWN moves with a mutant)', rm.shown.length === 4 && rm.more === 5);
+  check('fold: 75 octets stay one line, 76 fold, continuations hold 74 + the space',
+    S.fold('x'.repeat(75)) === 'x'.repeat(75) && S.fold('x'.repeat(76)) === 'x'.repeat(75) + '\r\n x'
+    && S.fold('x'.repeat(150)) === 'x'.repeat(75) + '\r\n ' + 'x'.repeat(74) + '\r\n x');
+  const r3 = { date: '2026-10-22', daysAgo: 2, halls: ['A', 'B', 'C'] };
+  check('text: three halls fold to +1', S.lastServedText(r3) === 'Last served Thu 10/22 at A, B +1 (2 days ago).', S.lastServedText(r3));
+  const hist = { halls: ['Branner', 'Stern'], meals: ['Breakfast', 'Lunch', 'Dinner'],
+    dishes: { Pho: [['2026-10-20', 1, 1], ['2026-10-22', 0, 1], ['2026-10-21', 1, 1]] } };   // latest at hall 0, so comparing
+  // the hall index instead of the date cannot land on it by luck (the first draft did)
+  const ls = S.lastServed('Pho', hist, { halls: [] }, new Date(2026, 9, 24, 12));
+  check('last served is the latest past date, wherever it sits in the rows', ls && ls.date === '2026-10-22' && ls.halls.join() === 'Branner', JSON.stringify(ls));
+  const dm = (h, m, halls = [cd.halls[0]]) => S.defaultMeal(cd.meals, halls, new Date(2026, 9, 26, h, m));   // Monday
+  check('default meal: a window is open from its first minute to its last',
+    dm(7, 30) === 'Breakfast' && dm(10, 0) === 'Breakfast' && dm(10, 1) === 'Lunch' && dm(13, 0) === 'Lunch' && dm(13, 31) === 'Dinner',
+    [dm(7, 30), dm(10, 0), dm(10, 1), dm(13, 0), dm(13, 31)].join());
+  const clock = (h, m) => S.defaultMeal(cd.meals, [], new Date(2026, 9, 26, h, m));
+  check('fallback clock: 10:29 Breakfast, 10:30 Lunch, 15:59 Lunch, 16:00 Dinner',
+    [clock(10, 29), clock(10, 30), clock(15, 59), clock(16, 0)].join() === 'Breakfast,Lunch,Lunch,Dinner',
+    [clock(10, 29), clock(10, 30), clock(15, 59), clock(16, 0)].join());
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

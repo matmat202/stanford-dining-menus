@@ -76,5 +76,12 @@ check(`egg: eggplant/veggie-only dishes (${falseEgg}) are not hidden (${egg} = $
 const two = A.tally(A.parse('mushroom, cilantro'), D);
 check('tally: hidden counts dishes once even when two terms hit', two.hidden <= two.counts.mushroom + two.counts.cilantro && two.hidden >= Math.max(two.counts.mushroom, two.counts.cilantro));
 
+// bin/mutate 2026-10-26: counts started at 1 survived, so a term that hides nothing would say "hides 1".
+const fx = [{ n: 'Mushroom Soup', i: 'mushrooms, onion' }, { n: 'Rice', i: '' }, { n: 'Onion Rings', i: 'onion' }];
+const tz = A.tally(['mushroom', 'onion', 'cilantro'], fx);
+check('tally: exact per-term counts, and a term that hides nothing reads 0',
+  tz.hidden === 2 && tz.counts.mushroom === 1 && tz.counts.onion === 2 && tz.counts.cilantro === 0, JSON.stringify(tz));
+check('hits: no list at all is nothing, not a crash', eq(A.hits(null, 'Mushroom Soup', 'mushrooms'), []));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

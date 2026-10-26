@@ -182,5 +182,21 @@ console.log('\nlate-night hall service (halls.json latenight)');
   check('no latenight -> null', L.lateNow(undefined, at(2, 22)) === null);
 }
 
+// bin/mutate 2026-10-26 survivors.
+console.log('\nedges: afternoon opening, Monday-bounded ranges, merged fields');
+{
+  check('opens at 17:00 says 5pm (hours read with /60, not near it)',
+    L.venueStatus([{ days: [0], open: '17:00', close: '20:00' }], at(1, 12)).opensAt === '5pm',
+    L.venueStatus([{ days: [0], open: '17:00', close: '20:00' }], at(1, 12)).opensAt);
+  check('ranges starting or ending on Monday (index 0) read',
+    JSON.stringify(L.rangeDays('Mon–Fri')) === '[0,1,2,3,4]' && JSON.stringify(L.rangeDays('Fri–Mon')) === '[4,5,6,0]');
+  check('one unreadable end is enough to be unreadable', L.rangeDays('Foo–Fri') === null && L.rangeDays('Fri–Foo') === null);
+  const m = L.mergePay([{ name: 'Coupa', windows: [], hours_text: ['Mon–Fri 7am–3pm'] }],
+    { accepts: [{ name: 'Coupa', cd: 1, mpd: 0 }] });
+  check('merge keeps hours_text and coerces pay flags to booleans',
+    m[0] && JSON.stringify(m[0].hours_text) === '["Mon–Fri 7am–3pm"]' && JSON.stringify(m[0].pay) === '{"cd":true,"mpd":false,"cashback":false}',
+    JSON.stringify(m[0]));
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

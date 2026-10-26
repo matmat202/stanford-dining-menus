@@ -52,5 +52,10 @@ check('hall sort uses WalkLogic.rank', html.includes('WalkLogic.rank('));
 check('service worker precaches it', sw.includes("'./walk-logic.js'"));
 if (pub !== null) check('publish.sh copies it', /cp [^\n]*(\\\n[^\n]*)*walk-logic\.js/.test(pub));
 
+// bin/mutate 2026-10-26: WALKABLE could be 2001 and no check noticed; and reach's contract
+// is that only an OPEN status gets a verdict, whatever else a status carries.
+check('2001 m is already km', W.label(2001) === '2.0 km', W.label(2001));
+check('a status that is not open gets no verdict even if it carries left', W.reach({ k: 'soon', txt: '', left: 30 }, 300) === null);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

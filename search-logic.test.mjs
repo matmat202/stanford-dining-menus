@@ -42,6 +42,26 @@ check('unrelated query misses', !S.matches('sushi', 'Gyūdon', 'beef, rice, onio
 check('-ss words keep their s', S.stem('swiss') === 'swiss' && S.stem('bass') === 'bass');
 check('short words untouched', S.stem('gas') === 'gas' && S.stem('pes') === 'pes');
 
+/* stem() was only ever asserted on the words it leaves ALONE, so bin/mutate walked
+ * every ending off it on 2026-10-26: each slice length and the <= 3 cutoff survived.
+ * These pin the transformations the header claims. */
+check('-s comes off', S.stem('tacos') === 'taco' && S.stem('burgers') === 'burger');
+check('-ies becomes y', S.stem('berries') === 'berry' && S.stem('fries') === 'fry');
+check('-oes keeps the o', S.stem('potatoes') === 'potato' && S.stem('tomatoes') === 'tomato');
+check('a 4-letter plural still stems', S.stem('eggs') === 'egg', S.stem('eggs'));
+check('exactly 3 letters is left alone', S.stem('ros') === 'ros', S.stem('ros'));
+check('-ies wins over the bare -s rule', S.stem('veggies') === 'veggy', S.stem('veggies'));
+check('-oes wins over the bare -s rule', S.stem('mangoes') === 'mango', S.stem('mangoes'));
+
+/* The one survivor left in matches() is `fold(query, false)` -> `fold(query, true)`, and
+ * it is EQUIVALENT, measured rather than assumed: every word in the payload, every word
+ * with an 's' appended and every dish name, against every dish — 2433 x 4377 = 10.6M
+ * pairs — agree exactly (state/scratch/search-l56/). Flipping `hp.includes` instead
+ * differs on 10.4M of them, so the probe could have found a difference. The reason is
+ * that matches() ORs the stemmed comparison anyway: anything the raw query found in the
+ * plain haystack, the stemmed query finds in the stemmed one. The `false` states the
+ * intent and the plain HAYSTACK is what is load-bearing, so it stays. Do not chase it. */
+
 console.log('3. superset of the old matcher on the real payload');
 const file = path.join(HERE, 'data', 'menus.json');
 if (!fs.existsSync(file)) { check('menus.json present', false, file); }

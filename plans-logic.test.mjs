@@ -106,5 +106,22 @@ check('unknown quarter -> null', L.compare(D, 'Summer', 10) === null);
   check('a plan missing the quarter -> null, not a partial table', L.compare(M, 'Spring', 10) === null);
 }
 
+// bin/mutate 2026-10-26 survivors. Feb is the short month, so a month index off by one
+// changes the day count; the fixture's quarters all straddle 30/31-day months only.
+console.log('\n9. day math across February, the first day of the window, and plan order');
+{
+  check('Feb 20 - Mar 5 2027 is exactly 2 weeks', L.weeksIn({ start: '2027-02-20', end: '2027-03-05' }) === 2,
+    String(L.weeksIn({ start: '2027-02-20', end: '2027-03-05' })));
+  const q = [{ quarter: 'W', start: '2027-02-20', end: '2027-04-01' }];
+  const w = L.switchWindow(q, '2027-02-20');
+  check('the switch window is open ON its first day and runs 21 days across Feb',
+    w && w.open === true && w.until === '2027-03-12', JSON.stringify(w));
+  const plan = (swipes, mpd) => ({ swipes, upper_only: false, quarters: [{ quarter: 'W', cost: 100, mpd }] });
+  const c = L.compare({ dates: q, plans: [plan(10, 900), plan(19, 100), plan(14, 500)] }, 'W', 12);
+  check('rows sorted most swipes first from scrambled input', c.rows.map(r => r.swipes).join() === '19,14,10', c.rows.map(r => r.swipes).join());
+  const dup = L.compare({ dates: q, plans: [plan(14, 500), plan(14, 600)] }, 'W', 12);
+  check('two plans with the same swipes produce no rate (no divide by zero)', dup.rates.length === 0, JSON.stringify(dup.rates));
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);
