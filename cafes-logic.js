@@ -78,6 +78,32 @@
     return { open: false };
   }
 
+  /** "Tue–Sat" / "Sun–Thu" -> [1,2,3,4,5] / [6,0,1,2,3] (Mon=0). null when unreadable. */
+  function rangeDays(label) {
+    const m = String(label || '').match(/^\s*(\w{3})\s*[–-]\s*(\w{3})\s*$/);
+    if (!m) return null;
+    const a = DOW_SHORT.indexOf(m[1]), b = DOW_SHORT.indexOf(m[2]);
+    if (a < 0 || b < 0) return null;
+    const out = [];
+    for (let d = a; ; d = (d + 1) % 7) { out.push(d); if (d === b) break; }
+    return out;
+  }
+
+  /**
+   * A hall's late-night service (halls.json `latenight`: Arrillaga Nights Tue–Sat 21:00–02:00)
+   * open right now -> { label, until }, else null. Without it, every hall card read CLOSED at
+   * 10pm on a Tuesday while two late-night services were serving (live audit, 2026-10-26).
+   * The days are the evenings it starts, so 00:30 Wednesday is still Tuesday's window.
+   */
+  function lateNow(latenight, now = campusDate()) {
+    if (!latenight || !latenight.hours) return null;
+    const days = rangeDays(latenight.days);
+    if (!days) return null;
+    const [open, close] = latenight.hours;
+    const s = venueStatus([{ days, open, close, overnight: toMin(close) <= toMin(open) }], now);
+    return s.open ? { label: latenight.label, until: s.until } : null;
+  }
+
   /**
    * One key per venue across R&DE's pages, which name the same place differently:
    * "The Axe & Palm (TAP)" / "The Axe & Palm at Old Union*", "Olives at Bldg. 160" /
@@ -118,7 +144,7 @@
   }
 
   const api = { jsDayToIdx, campusDate, CAMPUS_TZ, toMin, fmt12, daysLabel, isLate, venueStatus, DOW_SHORT,
-                payKey, mergePay };
+                payKey, mergePay, rangeDays, lateNow };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CafeLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

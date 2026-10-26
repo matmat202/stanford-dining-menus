@@ -448,6 +448,8 @@ function statusFor(hall,date,mealName){
   const isToday=date.getTime()===today.getTime();
   if(!isToday)return{k:'shut',txt:`${fmt(w[0])}–${fmt(w[1])}`,neutral:true};
   const c=campusNow(),now=c.getHours()*60+c.getMinutes();
+  const late=(now<w[0]||now>w[1])&&window.CafeLogic.lateNow(hall.latenight,c);
+  if(late)return{k:'late',txt:`${late.label} until ${late.until}`};
   if(now>=w[0]&&now<=w[1]){
     const left=w[1]-now;
     return{k:'open',txt:left<=30?`closes in ${left} min`:`until ${fmt(w[1])}`,left};
@@ -639,8 +641,8 @@ function renderHalls(rows){
     if(r.hall.concept&&r.hall.concept!==r.hall.name)
       sum.append(el('div','hconcept',r.hall.concept));
     const stat=el('div','hstat');
-    stat.append(el('span','pill '+(r.st.k==='open'?'open':r.st.k==='soon'?'soon':'shut'),
-      r.st.k==='open'?'serving':r.st.k==='soon'?'soon':(r.st.neutral?'hours':'closed')));
+    stat.append(el('span','pill '+(r.st.k==='open'||r.st.k==='late'?'open':r.st.k==='soon'?'soon':'shut'),
+      r.st.k==='open'?'serving':r.st.k==='late'?'late night':r.st.k==='soon'?'soon':(r.st.neutral?'hours':'closed')));
     stat.append(el('span','when',r.st.txt));
     if(r.dist!=null)stat.append(el('span','far',WalkLogic.label(r.dist)));
     if(r.reach&&r.reach.txt)stat.append(el('span','reach '+r.reach.k,r.reach.txt));

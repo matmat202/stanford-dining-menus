@@ -162,5 +162,25 @@ if (!fs.existsSync(path.join(HERE, '../fixtures/pay-2026-10-25.json'))) {
     L.mergePay(cafes.venues, null).every(r => r.pay === null) && L.mergePay(cafes.venues, null).length === cafes.venues.length);
 }
 
+
+console.log('\nlate-night hall service (halls.json latenight)');
+{
+  const AN = { label: 'Arrillaga Nights', days: 'Tue–Sat', hours: ['21:00', '02:00'] };
+  const LN = { label: 'Late Night', days: 'Sun–Thu', hours: ['21:30', '02:00'] };
+  check('Tue–Sat -> Mon=0 indices', JSON.stringify(L.rangeDays('Tue–Sat')) === '[1,2,3,4,5]');
+  check('Sun–Thu wraps the week', JSON.stringify(L.rangeDays('Sun–Thu')) === '[6,0,1,2,3]');
+  check('unreadable days -> null', L.rangeDays('weekends') === null && L.lateNow({ ...AN, days: '?' }, at(2, 22)) === null);
+  const tue22 = L.lateNow(AN, at(2, 22));
+  check('Tuesday 22:00: Arrillaga Nights open until 2am', tue22 && tue22.until === '2am' && tue22.label === 'Arrillaga Nights');
+  check('Tuesday 20:59: not yet', L.lateNow(AN, at(2, 20, 59)) === null);
+  check('Wednesday 00:30 carries Tuesday night', !!L.lateNow(AN, at(3, 0, 30)));
+  check('Wednesday 02:00: over', L.lateNow(AN, at(3, 2)) === null);
+  check('Monday 22:00: Arrillaga Nights does not run Mondays', L.lateNow(AN, at(1, 22)) === null);
+  check('Tuesday 00:30 is Monday night: none', L.lateNow(AN, at(2, 0, 30)) === null);
+  check('Sunday 21:45: Lakeside Late Night open', !!L.lateNow(LN, at(0, 21, 45)));
+  check('Friday 22:00: Lakeside has none', L.lateNow(LN, at(5, 22)) === null);
+  check('no latenight -> null', L.lateNow(undefined, at(2, 22)) === null);
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);
