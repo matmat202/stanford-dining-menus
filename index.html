@@ -1246,11 +1246,11 @@ function boot(d){
   const when=new Date(d.scraped_at);
   const hoursOld=(Date.now()-when.getTime())/3.6e6;
   document.getElementById('freshness').textContent='menus read '+
-    when.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:window.CafeLogic.CAMPUS_TZ});
+    when.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZone:window.CafeLogic.CAMPUS_TZ});
   if(ti<0||hoursOld>36){
     const w=el('div','stale');
     w.textContent=ti<0
-      ?`These menus were read ${when.toLocaleDateString(undefined,{timeZone:window.CafeLogic.CAMPUS_TZ})} and no longer cover today.`
+      ?`These menus were read ${when.toLocaleDateString('en-US',{timeZone:window.CafeLogic.CAMPUS_TZ})} and no longer cover today.`
       :`These menus are ${Math.floor(hoursOld)} hours old; R&DE may have changed them since.`;
     document.getElementById('stale').append(w);
   }
