@@ -1309,6 +1309,17 @@ function boot(d){
   });
   render();
   setInterval(render,60000);   // keep "closes in N min" honest
+  onReturn(render);            // ...and honest again the moment the tab comes back
+}
+
+// A phone tab that was backgrounded, frozen or put to sleep keeps whatever it last
+// painted: setInterval does not fire while the page is frozen, and nothing here
+// listened for the return. Measured on the live site 2026-10-26 with a fake clock:
+// a page painted at 12:30 still read "6 serving now - until 1:30pm" once the clock
+// reached 3am, and only the next tick corrected it. The glance happens first.
+function onReturn(fn){
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)fn();});
+  window.addEventListener('pageshow',e=>{if(e.persisted)fn();});
 }
 
 // Café hours are a separate, optional payload: if it fails the other three tabs are
