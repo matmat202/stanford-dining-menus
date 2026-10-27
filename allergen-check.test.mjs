@@ -25,6 +25,10 @@ check('smoky aioli -> EGG; hot dog bun -> WHEAT',
       flags('sausage, hot dog bun, smoky aioli sauce') === 'EGG,WHEAT');
 const h = A.untagged({ i: 'jackfruit, soy sauce', a: '' }).find(x => x.allergen === 'WHEAT');
 check('the matched phrase is returned for quoting', h && h.phrase === 'soy sauce', JSON.stringify(h));
+// The page prints `mentions "<phrase>"`. PEANUTS and COCONUT match without a capture group,
+// so the phrase has to be the whole match, or the card reads `mentions "undefined"`.
+const ph = A.untagged({ i: 'chicken, peanuts, coconut milk', a: '' }).map(x => `${x.allergen}:${x.phrase}`).join();
+check('every rule quotes a real phrase, including the group-less ones', ph === 'PEANUTS:peanuts,COCONUT:coconut', ph);
 
 console.log('\n2. tagged allergens are not re-reported');
 check('tofu tagged SOY', flags('tofu, ginger', 'SOY') === '');

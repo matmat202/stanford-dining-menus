@@ -114,6 +114,13 @@ check('a close with no open is unknown, not open',
   L.status({ date: '2026-10-26', open: null, close: '14:00' }, noon).state === 'unknown');
 check('an open with no close is unknown, not open',
   L.status({ date: '2026-10-26', open: '11:00', close: null }, noon).state === 'unknown');
+// Unknown outranks done even when the tiebreak would say otherwise: a half-known 11:00 row
+// against a finished 07:00 one. With no open time at all (section 6) '' sorts first anyway,
+// which is why that check could not tell the ranks apart.
+const half = L.plan([T('2026-10-26', '07:00', '10:00', 'Breakfast Cart'),
+  { date: '2026-10-26', open: '11:00', close: null, vendor: 'Half Known' }], noon);
+check('a half-known truck still ranks ahead of a finished one',
+  half.today.map(r => r.vendor).join() === 'Half Known,Breakfast Cart', half.today.map(r => r.vendor).join());
 check('11:30 open is not read as 11:00',
   L.status(T('2026-10-26', '11:30', '14:00'), at(2026, 10, 26, 11, 15)).state === 'later');
 check('minutes until a :30 opening', 

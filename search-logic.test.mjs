@@ -34,6 +34,11 @@ check('half-typed word still matches', S.matches('chick', 'Chicken Tikka Masala'
 check('half-typed plural-looking word', S.matches('chees', 'Mac & Cheese', ''));
 check('compound words still match (unanchored)', S.matches('fruit', 'Smoky BBQ Jackfruit', ''));
 check('-ies plural not lost to stemming', S.matches('veggie', 'Rice Noodles with Veggies', ''));
+check('-is spelling finds an -ies dish (stems disagree: chili vs chily)', S.matches('chilis', 'Jeera Rice', 'Basmati Rice, Ghee, Green Chilies, Cilantro.'));
+check('...and still not a dish without it', !S.matches('chilis', 'Jeera Rice', 'Basmati Rice, Ghee, Cilantro.'));
+// The plain clause is the only one that holds an -ies query inside a compound word: the
+// stem rewrites ies->y, so neither stemmed clause can find it. No live dish has one today.
+check('an -ies query inside a compound word still matches (plain clause)', S.matches('ladies', 'Ladiesfinger Curry', ''));
 check('empty query matches everything', S.matches('   ', 'Anything', ''));
 check('words out of order do NOT match', !S.matches('rice fried', 'Fried Rice', ''));
 check('no false match across name/ingredient words',

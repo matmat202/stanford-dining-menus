@@ -121,6 +121,12 @@ console.log('\n7. boundaries the earlier cases never touched (bin/mutate survivo
   check('between windows, the evening one is next', L.venueStatus(two, at(1, 12)).opensAt === '5pm',
     L.venueStatus(two, at(1, 12)).opensAt);
   check('a window that has already closed is not "next"', L.venueStatus(two, at(1, 21)).opensAt === undefined);
+  // At the open minute of a window that never opens (zero-length, as a page typo produces),
+  // it is not "opening at 9am" at 9:00 — nothing is coming later today.
+  const zero = [{ days: [0], open: '09:00', close: '09:00', overnight: false }];
+  check('zero-length window at its own minute: closed, no "opens at"',
+    L.venueStatus(zero, at(1, 9)).open === false && L.venueStatus(zero, at(1, 9)).opensAt === undefined,
+    JSON.stringify(L.venueStatus(zero, at(1, 9))));
   check('close at 21:00 counts as late', L.isLate({ close: '21:00', overnight: false }) === true);
   check('close at 20:59 is not late',     L.isLate({ close: '20:59', overnight: false }) === false);
   check('two contiguous days are listed, not ranged', L.daysLabel([0,1]) === 'Mon Tue', L.daysLabel([0,1]));
@@ -180,6 +186,11 @@ console.log('\nlate-night hall service (halls.json latenight)');
   check('Sunday 21:45: Lakeside Late Night open', !!L.lateNow(LN, at(0, 21, 45)));
   check('Friday 22:00: Lakeside has none', L.lateNow(LN, at(5, 22)) === null);
   check('no latenight -> null', L.lateNow(undefined, at(2, 22)) === null);
+  // Equal hours is a round-the-clock service, not an empty one: open == close must take
+  // the overnight branch, or a 24h late-night line reads closed every hour of every night.
+  const allNight = { label: 'All Night', days: 'Tue–Sat', hours: ['00:00', '00:00'] };
+  check('hours open == close: open all day on its days', !!L.lateNow(allNight, at(2, 12)));
+  check('hours open == close: still not on its off days', L.lateNow(allNight, at(1, 12)) === null);
 }
 
 // bin/mutate 2026-10-26 survivors.

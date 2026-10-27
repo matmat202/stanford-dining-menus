@@ -22,7 +22,7 @@ function fakeDoc(spec) {
     for (let i = 0; i < n; i++) {
       const b = { tagName: 'BUTTON', i, box };
       b.closest = sel => (sel === '#' + id ? box : null);
-      b.focus = () => { doc.activeElement = b; };
+      b.focus = (opts) => { doc.activeElement = b; doc.focusOpts = opts; };
       box.kids.push(b);
     }
     doc.boxes[id] = box;
@@ -48,6 +48,19 @@ function fakeDoc(spec) {
   const outside = { tagName: 'A', closest: () => null };
   check('focus outside rebuilt containers -> null', K.focusSlot(outside) === null);
   check('no active element -> null', K.focusSlot(null) === null);
+  // The first button is index 0 — the day you are on is usually the first one, and an
+  // `index <= 0` slip would drop focus to <body> on exactly that button.
+  const s0 = K.focusSlot(doc.boxes.days.kids[0]);
+  check('the first button is a slot, not "nowhere"', s0 && s0.id === 'days' && s0.index === 0, JSON.stringify(s0));
+  const d4 = fakeDoc({ days: 7 }); K.restoreFocus({ id: 'days', index: 3 }, d4);
+  check('restore does not scroll the page to the button',
+    d4.focusOpts && d4.focusOpts.preventScroll === true, JSON.stringify(d4.focusOpts));
+  // Already in the slot: no second focus() (it would fire focus handlers every 60 s tick),
+  // and the return says nothing moved. index.html ignores the return; the contract does not.
+  const d5 = fakeDoc({ days: 7 }); d5.activeElement = d5.boxes.days.kids[1];
+  let refocused = false; d5.boxes.days.kids[1].focus = () => { refocused = true; };
+  check('already focused -> no-op, returns false',
+    K.restoreFocus({ id: 'days', index: 1 }, d5) === false && !refocused);
   check('every rebuilt container is covered', ['days', 'meals', 'views', 'drawer'].every(x => K.REBUILT.includes(x)));
 }
 
@@ -73,6 +86,8 @@ function fakeDoc(spec) {
   check('IME composition is ignored', K.action(ev('/', body, { isComposing: true })) === null);
   check('already-handled events are ignored', K.action(ev('/', body, { defaultPrevented: true })) === null);
   check('contenteditable counts as typing', K.isEditable({ tagName: 'DIV', isContentEditable: true }));
+  check('no target is not typing', K.isEditable(null) === false && K.isEditable(undefined) === false);
+  check('/ with no target still focuses search', a('/', null) === '{"type":"search"}');
   check('select counts as typing', K.isEditable({ tagName: 'SELECT' }));
   check('other keys do nothing', K.action(ev('a', body)) === null);
 }

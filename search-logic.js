@@ -51,12 +51,16 @@
    *  real compounds: "fruit" lost jackfruit, "fish" catfish, "bread" cornbread, "pea"
    *  chickpea, "fried" refried (projects/search-fold/measure.cjs).
    *  Two tests, not one: plain-vs-plain keeps the matches the old test had (stemming alone
-   *  lost "veggie" -> Veggies, which stems to veggy); stemmed-vs-stemmed adds plurals. */
+   *  lost "veggie" -> Veggies, which stems to veggy); stemmed-vs-stemmed adds plurals.
+   *  Stemmed query vs plain dish is the third: "chilis" stems to chili and "Chilies" to
+   *  chily, so neither of the others found Green Chilies. Over 3,342 queries x 331 live
+   *  dishes (2026-10-27) it lost no match and added 8, all -is spellings of -ies words. */
   function matches(query, name, ingredients) {
     const plain = fold(query, false);
     if (!plain) return true;
     const [hp, hs] = haystack(name, ingredients);
-    return hp.includes(plain) || hs.includes(fold(query));
+    const stemmed = fold(query);
+    return hp.includes(plain) || hs.includes(stemmed) || hp.includes(stemmed);
   }
 
   const api = { fold, stem, matches };

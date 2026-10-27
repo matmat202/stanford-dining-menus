@@ -222,6 +222,12 @@ console.log('\n9. guards and boundaries the earlier cases never touched (bin/mut
     L.statusLabel({ open: false, opensAt: '9am', opensDay: 'Tuesday', opensInMin: 960 }) === 'Opens 9am');
   check('16h01m out names the weekday',
     L.statusLabel({ open: false, opensAt: '9am', opensDay: 'Tuesday', opensInMin: 961 }) === 'Opens Tuesday 9am');
+  // opensInMin is exact minutes, rounded half up: 90.5 min before opening reads 91. A divisor
+  // even 1 ms off a minute rounds that to 90 — and at 960.5 that flips the label above.
+  const wk = [rec('2026-10-20', 'Tuesday', '09:00', '17:00')];
+  const half = new Date(pt('2026-10-20T09:00').getTime() - 90.5 * 60000);
+  const halfSt = L.libraryStatus(wk, half);
+  check('90.5 min before opening -> opensInMin 91', halfSt.opensInMin === 91, String(halfSt.opensInMin));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
