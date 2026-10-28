@@ -9,11 +9,14 @@
  * So distance becomes walking minutes, and an open hall is judged against them:
  *   late  — it closes before you would arrive; sorted below the halls you can reach
  *   tight — you would arrive with under TIGHT minutes of service left
- * Straight-line metres times DETOUR at SPEED m/min. Campus paths are not straight, so
- * this errs slightly long, which is the safe direction for a "you won't make it" call.
+ * Straight-line metres times DETOUR at SPEED m/min. DETOUR was 1.25 and said to err
+ * long; routed over the OSM walk network (projects/walk-detour/measure.py, 311
+ * buildings x 8 halls) campus paths run a median 1.40x crow-fly, and 1.25 came out
+ * short in 78% of pairs. At 1.40 the mean error is ~0, and OSM misses lawn cuts, so
+ * what error is left leans long: the safe side for a "you won't make it" call.
  */
 (function (root) {
-  const DETOUR = 1.25;   // path length over crow-fly distance
+  const DETOUR = 1.40;   // path length over crow-fly distance
   const SPEED = 80;      // m/min, about 4.8 km/h
   const TIGHT = 10;      // minutes at the hall that still count as a meal
   const WALKABLE = 2000; // beyond this, show km: nobody walks 30 min to lunch
