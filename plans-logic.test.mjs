@@ -121,6 +121,12 @@ console.log('\n9. day math across February, the first day of the window, and pla
   check('rows sorted most swipes first from scrambled input', c.rows.map(r => r.swipes).join() === '19,14,10', c.rows.map(r => r.swipes).join());
   const dup = L.compare({ dates: q, plans: [plan(14, 500), plan(14, 600)] }, 'W', 12);
   check('two plans with the same swipes produce no rate (no divide by zero)', dup.rates.length === 0, JSON.stringify(dup.rates));
+  const one = L.compare({ dates: q, plans: [plan(14, 500)] }, 'W', 12);
+  check('a single plan is the same price as itself, and is the pick', one.sameCost === true && one.pick === 14, JSON.stringify([one.sameCost, one.pick]));
+  // One swipe apart over one week is exactly one swipe given up: a rate, not "no rate".
+  const wk = [{ quarter: 'W', start: '2027-02-20', end: '2027-02-26' }];
+  const near1 = L.compare({ dates: wk, plans: [plan(19, 100), plan(18, 109)] }, 'W', 12);
+  check('one swipe given up is bought back at its own rate', near1.rates.length === 1 && near1.rates[0].perSwipe === 9, JSON.stringify(near1.rates));
 }
 
 console.log(`\n${pass} passed, ${fail} failed\n`);

@@ -19,8 +19,8 @@ const check = (n, c, d = '') => c ? (pass++, console.log(`  ok   ${n}`))
 const ORIGIN = 'https://example.github.io/site/';
 
 // A fresh worker per case: a cache holding the previous deploy, a network serving the next.
-function worker({ online = true } = {}) {
-  const store = new Map(), net = [];
+function worker({ online = true, keys = [] } = {}) {
+  const store = new Map(), net = [], deleted = [];
   const key = r => (typeof r === 'string' ? new URL(r, ORIGIN).href : r.url);
   const cache = {
     put: async (r, res) => { store.set(key(r), res); },
@@ -30,7 +30,7 @@ function worker({ online = true } = {}) {
   const ctx = {
     self: { location: new URL(ORIGIN), addEventListener: (t, f) => { listeners[t] = f; },
             skipWaiting: () => {}, clients: { claim: () => {} } },
-    caches: { open: async () => cache, keys: async () => [], delete: async () => true,
+    caches: { open: async () => cache, keys: async () => keys, delete: async (k) => { deleted.push(k); return true; },
               match: async r => store.get(key(r)) },
     fetch: async r => {
       net.push(key(r));
@@ -46,7 +46,8 @@ function worker({ online = true } = {}) {
     listeners.fetch({ request: req, respondWith: x => { out = x; } });
     return out ? (await out)?.body : 'passthrough';
   };
-  return { store, net, get };
+  const activate = async () => { let p; listeners.activate({ waitUntil: (x) => { p = x; } }); await p; };
+  return { store, net, get, deleted, activate };
 }
 const stale = (w, p) => w.store.set(new URL(p, ORIGIN).href, { body: 'cache', clone() { return this; } });
 
@@ -75,6 +76,14 @@ for (const d of ['data/site.json', 'data/cafes.json', 'data/libraries.json', 'da
   const w = worker();
   check('cross-origin (CDN, tiles): not intercepted',
         (await w.get('https://cdnjs.cloudflare.com/x.js')) === 'passthrough');
+}
+{
+  // Activation clears every cache but this deploy's. The mock used to list no caches at all,
+  // so nothing could tell "delete the old ones" from "delete the current one".
+  const VERSION = /const VERSION = '([^']+)'/.exec(fs.readFileSync(path.join(HERE, 'sw.js'), 'utf8'))[1];
+  const w = worker({ keys: ['dining-old-1', VERSION, 'dining-old-2'] });
+  await w.activate();
+  check('activate deletes the previous deploys\' caches, and keeps this one', JSON.stringify(w.deleted) === JSON.stringify(['dining-old-1', 'dining-old-2']), JSON.stringify(w.deleted));
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
