@@ -133,8 +133,8 @@ header.top h1 .red{color:var(--accent)}
 .toolbar input{flex:1;min-width:0;font-family:var(--f-ui);font-size:15px;padding:8px 11px;
   color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
 .toolbar input::placeholder{color:var(--muted)}
-/* Below ~360px the three buttons leave the box 60px wide: give search its own row. */
-@media (max-width:359px){.toolbar{flex-wrap:wrap}.toolbar input{flex:1 1 100%}.toolbar .iconbtn{flex:1 1 0}}
+/* Under 390px the three buttons leave the box narrower than its 116px placeholder (100px at 360, ~115 at 375): give search its own row. */
+@media (max-width:389px){.toolbar{flex-wrap:wrap}.toolbar input{flex:1 1 100%}.toolbar .iconbtn{flex:1 1 0}}
 .iconbtn{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r);padding:8px 11px;font-size:12.5px;font-weight:600;color:var(--ink-2);
   cursor:pointer;min-height:38px;font-family:var(--f-ui);white-space:nowrap}
