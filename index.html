@@ -137,6 +137,12 @@ header.top h1 .red{color:var(--accent)}
 /* Under 390px the three buttons leave the box narrower than its 116px placeholder (100px at 360, ~115 at 375): give search its own row. */
 /* A landscape phone is ~340px tall; stuck there, the rail took 196px (57%) and left 146 for the menu. On short screens it scrolls away. */
 @media (max-height:500px){.rail{position:static}}
+/* Under 390px the toolbar wraps and the whole rail was 280px: 42% of a 375x667 phone, 57% of a
+   320x568 SE (compact-rail). There only day and meal stay pinned; search, filters and views scroll away. */
+@media (max-width:389px) and (min-height:501px){.rail{display:contents}
+  .rail-pin{position:sticky;top:0;z-index:900;background:var(--ground);padding-block:8px 8px;
+    border-bottom:1px solid var(--line)}
+  .rail-rest{padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:12px}}
 @media (max-width:389px){.toolbar{flex-wrap:wrap}.toolbar input{flex:1 1 100%}.toolbar .iconbtn{flex:1 1 0}}
 .iconbtn{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r);padding:8px 11px;font-size:12.5px;font-weight:600;color:var(--ink-2);
@@ -357,8 +363,11 @@ input,select,textarea{font-size:16px!important}
   </header>
 
   <div class="rail">
+   <div class="rail-pin">
     <div class="scroller" id="days"></div>
     <div class="seg" id="meals"></div>
+   </div>
+   <div class="rail-rest">
     <div class="toolbar">
       <input type="search" id="q" placeholder="Dish or ingredient" aria-label="Search dishes or ingredients" autocomplete="off" aria-keyshortcuts="/">
       <button class="iconbtn" id="btn-filters" type="button" aria-pressed="false">Filters</button>
@@ -366,6 +375,7 @@ input,select,textarea{font-size:16px!important}
       <button class="iconbtn" id="btn-share" type="button" aria-label="Copy a link to this view">Share</button>
     </div>
     <div class="seg" id="views" style="margin-top:7px"></div>
+   </div>
   </div>
 
   <div class="drawer hidden" id="drawer"></div>
