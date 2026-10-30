@@ -1,0 +1,495 @@
+{
+ "fetched": "2026-10-30T06:47:05-06:00",
+ "page": "https://rde.stanford.edu/dining-hospitality/dining-locations-hours",
+ "sources": [
+  {
+   "url": "https://rde.stanford.edu/sites/default/files/2026-10/Dining%20Hall%20Specials%20Calendar_Oct26_Nov6.pdf",
+   "from": "2026-10-26",
+   "to": "2026-11-06",
+   "count": 80
+  }
+ ],
+ "specials": [
+  {
+   "date": "2026-10-26",
+   "hall": "Arrillaga",
+   "text": "Honey Citrus Glazed Pork Belly, Steamed Jasmine Rice and Roasted Broccoli",
+   "event": false
+  },
+  {
+   "date": "2026-10-26",
+   "hall": "Branner",
+   "text": "Wendy's Pork Posole",
+   "event": false
+  },
+  {
+   "date": "2026-10-26",
+   "hall": "FlorenceMoore",
+   "text": "Street Tacos, Beef or Chicken with Salsa, Crema, Pico de Gallo, Guacamole and Pickled Cabbage",
+   "event": false
+  },
+  {
+   "date": "2026-10-26",
+   "hall": "GerhardCasper",
+   "text": "Mujadara with Tahini Yogurt Sauce: Spiced Lentil and Basmati Rice Dish",
+   "event": false
+  },
+  {
+   "date": "2026-10-26",
+   "hall": "Lakeside",
+   "text": "Fried Oyster Po Boy",
+   "event": false
+  },
+  {
+   "date": "2026-10-26",
+   "hall": "Ricker",
+   "text": "Jook & Toppings Station",
+   "event": false
+  },
+  {
+   "date": "2026-10-26",
+   "hall": "Stern",
+   "text": "Quesadilla Bar",
+   "event": false
+  },
+  {
+   "date": "2026-10-26",
+   "hall": "Wilbur",
+   "text": "Tomato Soup with Grilled Cheese",
+   "event": false
+  },
+  {
+   "date": "2026-10-27",
+   "hall": "Arrillaga",
+   "text": "Honey Citrus Glazed Pork Belly, Steamed Jasmine Rice and Roasted Broccoli",
+   "event": false
+  },
+  {
+   "date": "2026-10-27",
+   "hall": "Branner",
+   "text": "Wendy's Pork Posole",
+   "event": false
+  },
+  {
+   "date": "2026-10-27",
+   "hall": "FlorenceMoore",
+   "text": "Street Tacos, Beef or Chicken with Salsa, Crema, Pico de Gallo, Guacamole and Pickled Cabbage",
+   "event": false
+  },
+  {
+   "date": "2026-10-27",
+   "hall": "GerhardCasper",
+   "text": "Mujadara with Tahini Yogurt Sauce: Spiced Lentil and Basmati Rice Dish",
+   "event": false
+  },
+  {
+   "date": "2026-10-27",
+   "hall": "Lakeside",
+   "text": "Fried Oyster Po Boy",
+   "event": false
+  },
+  {
+   "date": "2026-10-27",
+   "hall": "Ricker",
+   "text": "Jook & Toppings Station",
+   "event": false
+  },
+  {
+   "date": "2026-10-27",
+   "hall": "Stern",
+   "text": "Quesadilla Bar",
+   "event": false
+  },
+  {
+   "date": "2026-10-27",
+   "hall": "Wilbur",
+   "text": "Tomato Soup with Grilled Cheese",
+   "event": false
+  },
+  {
+   "date": "2026-10-28",
+   "hall": "Arrillaga",
+   "text": "Honey Citrus Glazed Pork Belly, Steamed Jasmine Rice and Roasted Broccoli",
+   "event": false
+  },
+  {
+   "date": "2026-10-28",
+   "hall": "Branner",
+   "text": "Wendy's Pork Posole",
+   "event": false
+  },
+  {
+   "date": "2026-10-28",
+   "hall": "FlorenceMoore",
+   "text": "Street Tacos, Beef or Chicken with Salsa, Crema, Pico de Gallo, Guacamole and Pickled Cabbage",
+   "event": false
+  },
+  {
+   "date": "2026-10-28",
+   "hall": "GerhardCasper",
+   "text": "Mujadara with Tahini Yogurt Sauce: Spiced Lentil and Basmati Rice Dish",
+   "event": false
+  },
+  {
+   "date": "2026-10-28",
+   "hall": "Lakeside",
+   "text": "Fried Oyster Po Boy",
+   "event": false
+  },
+  {
+   "date": "2026-10-28",
+   "hall": "Ricker",
+   "text": "Jook & Toppings Station",
+   "event": false
+  },
+  {
+   "date": "2026-10-28",
+   "hall": "Stern",
+   "text": "Quesadilla Bar",
+   "event": false
+  },
+  {
+   "date": "2026-10-28",
+   "hall": "Wilbur",
+   "text": "Tomato Soup with Grilled Cheese",
+   "event": false
+  },
+  {
+   "date": "2026-10-29",
+   "hall": "Arrillaga",
+   "text": "Honey Citrus Glazed Pork Belly, Steamed Jasmine Rice and Roasted Broccoli",
+   "event": false
+  },
+  {
+   "date": "2026-10-29",
+   "hall": "Branner",
+   "text": "Wendy's Pork Posole",
+   "event": false
+  },
+  {
+   "date": "2026-10-29",
+   "hall": "FlorenceMoore",
+   "text": "Street Tacos, Beef or Chicken with Salsa, Crema, Pico de Gallo, Guacamole and Pickled Cabbage",
+   "event": false
+  },
+  {
+   "date": "2026-10-29",
+   "hall": "GerhardCasper",
+   "text": "Mujadara with Tahini Yogurt Sauce: Spiced Lentil and Basmati Rice Dish",
+   "event": false
+  },
+  {
+   "date": "2026-10-29",
+   "hall": "Lakeside",
+   "text": "Fried Oyster Po Boy",
+   "event": false
+  },
+  {
+   "date": "2026-10-29",
+   "hall": "Ricker",
+   "text": "Jook & Toppings Station",
+   "event": false
+  },
+  {
+   "date": "2026-10-29",
+   "hall": "Stern",
+   "text": "Dia de Muertos Dinner",
+   "event": true
+  },
+  {
+   "date": "2026-10-29",
+   "hall": "Wilbur",
+   "text": "Tomato Soup with Grilled Cheese",
+   "event": false
+  },
+  {
+   "date": "2026-10-30",
+   "hall": "Arrillaga",
+   "text": "Honey Citrus Glazed Pork Belly, Steamed Jasmine Rice and Roasted Broccoli",
+   "event": false
+  },
+  {
+   "date": "2026-10-30",
+   "hall": "Branner",
+   "text": "Wendy's Pork Posole",
+   "event": false
+  },
+  {
+   "date": "2026-10-30",
+   "hall": "FlorenceMoore",
+   "text": "Street Tacos, Beef or Chicken with Salsa, Crema, Pico de Gallo, Guacamole and Pickled Cabbage",
+   "event": false
+  },
+  {
+   "date": "2026-10-30",
+   "hall": "GerhardCasper",
+   "text": "Mujadara with Tahini Yogurt Sauce: Spiced Lentil and Basmati Rice Dish",
+   "event": false
+  },
+  {
+   "date": "2026-10-30",
+   "hall": "Lakeside",
+   "text": "Fried Oyster Po Boy",
+   "event": false
+  },
+  {
+   "date": "2026-10-30",
+   "hall": "Ricker",
+   "text": "Jook & Toppings Station",
+   "event": false
+  },
+  {
+   "date": "2026-10-30",
+   "hall": "Stern",
+   "text": "Quesadilla Bar",
+   "event": false
+  },
+  {
+   "date": "2026-10-30",
+   "hall": "Wilbur",
+   "text": "Tomato Soup with Grilled Cheese",
+   "event": false
+  },
+  {
+   "date": "2026-11-02",
+   "hall": "Arrillaga",
+   "text": "Sweet And Sour Braised Chicken, Steamed Jasmine Rice and Roasted Green Beans",
+   "event": false
+  },
+  {
+   "date": "2026-11-02",
+   "hall": "Branner",
+   "text": "Marry Me Potato Gnocchi & Sauteed Kale",
+   "event": false
+  },
+  {
+   "date": "2026-11-02",
+   "hall": "FlorenceMoore",
+   "text": "Miso-Sesame Soba Noodles",
+   "event": false
+  },
+  {
+   "date": "2026-11-02",
+   "hall": "GerhardCasper",
+   "text": "Cheesy Ramen with Chili Crisp and Egg",
+   "event": false
+  },
+  {
+   "date": "2026-11-02",
+   "hall": "Lakeside",
+   "text": "Boudin Bombs",
+   "event": false
+  },
+  {
+   "date": "2026-11-02",
+   "hall": "Ricker",
+   "text": "Loaded Pastrami Fries",
+   "event": false
+  },
+  {
+   "date": "2026-11-02",
+   "hall": "Stern",
+   "text": "Posole",
+   "event": false
+  },
+  {
+   "date": "2026-11-02",
+   "hall": "Wilbur",
+   "text": "Champurrado with Pan Dulce",
+   "event": false
+  },
+  {
+   "date": "2026-11-03",
+   "hall": "Arrillaga",
+   "text": "Sweet And Sour Braised Chicken, Steamed Jasmine Rice and Roasted Green Beans",
+   "event": false
+  },
+  {
+   "date": "2026-11-03",
+   "hall": "Branner",
+   "text": "Marry Me Potato Gnocchi & Sauteed Kale",
+   "event": false
+  },
+  {
+   "date": "2026-11-03",
+   "hall": "FlorenceMoore",
+   "text": "Miso-Sesame Soba Noodles",
+   "event": false
+  },
+  {
+   "date": "2026-11-03",
+   "hall": "GerhardCasper",
+   "text": "Cheesy Ramen with Chili Crisp and Egg",
+   "event": false
+  },
+  {
+   "date": "2026-11-03",
+   "hall": "Lakeside",
+   "text": "Boudin Bombs",
+   "event": false
+  },
+  {
+   "date": "2026-11-03",
+   "hall": "Ricker",
+   "text": "Loaded Pastrami Fries",
+   "event": false
+  },
+  {
+   "date": "2026-11-03",
+   "hall": "Stern",
+   "text": "Posole",
+   "event": false
+  },
+  {
+   "date": "2026-11-03",
+   "hall": "Wilbur",
+   "text": "Champurrado with Pan Dulce",
+   "event": false
+  },
+  {
+   "date": "2026-11-04",
+   "hall": "Arrillaga",
+   "text": "Sweet And Sour Braised Chicken, Steamed Jasmine Rice and Roasted Green Beans",
+   "event": false
+  },
+  {
+   "date": "2026-11-04",
+   "hall": "Branner",
+   "text": "Marry Me Potato Gnocchi & Sauteed Kale",
+   "event": false
+  },
+  {
+   "date": "2026-11-04",
+   "hall": "FlorenceMoore",
+   "text": "Miso-Sesame Soba Noodles",
+   "event": false
+  },
+  {
+   "date": "2026-11-04",
+   "hall": "GerhardCasper",
+   "text": "Cheesy Ramen with Chili Crisp and Egg",
+   "event": false
+  },
+  {
+   "date": "2026-11-04",
+   "hall": "Lakeside",
+   "text": "Boudin Bombs",
+   "event": false
+  },
+  {
+   "date": "2026-11-04",
+   "hall": "Ricker",
+   "text": "Loaded Pastrami Fries",
+   "event": false
+  },
+  {
+   "date": "2026-11-04",
+   "hall": "Stern",
+   "text": "Posole",
+   "event": false
+  },
+  {
+   "date": "2026-11-04",
+   "hall": "Wilbur",
+   "text": "Champurrado with Pan Dulce",
+   "event": false
+  },
+  {
+   "date": "2026-11-05",
+   "hall": "Arrillaga",
+   "text": "Sweet And Sour Braised Chicken, Steamed Jasmine Rice and Roasted Green Beans",
+   "event": false
+  },
+  {
+   "date": "2026-11-05",
+   "hall": "Branner",
+   "text": "Marry Me Potato Gnocchi & Sauteed Kale",
+   "event": false
+  },
+  {
+   "date": "2026-11-05",
+   "hall": "FlorenceMoore",
+   "text": "Diwali Dinner",
+   "event": true
+  },
+  {
+   "date": "2026-11-05",
+   "hall": "GerhardCasper",
+   "text": "Cheesy Ramen with Chili Crisp and Egg",
+   "event": false
+  },
+  {
+   "date": "2026-11-05",
+   "hall": "Lakeside",
+   "text": "Boudin Bombs",
+   "event": false
+  },
+  {
+   "date": "2026-11-05",
+   "hall": "Ricker",
+   "text": "Loaded Pastrami Fries",
+   "event": false
+  },
+  {
+   "date": "2026-11-05",
+   "hall": "Stern",
+   "text": "Posole",
+   "event": false
+  },
+  {
+   "date": "2026-11-05",
+   "hall": "Wilbur",
+   "text": "Champurrado with Pan Dulce",
+   "event": false
+  },
+  {
+   "date": "2026-11-06",
+   "hall": "Arrillaga",
+   "text": "Sweet And Sour Braised Chicken, Steamed Jasmine Rice and Roasted Green Beans",
+   "event": false
+  },
+  {
+   "date": "2026-11-06",
+   "hall": "Branner",
+   "text": "Marry Me Potato Gnocchi & Sauteed Kale",
+   "event": false
+  },
+  {
+   "date": "2026-11-06",
+   "hall": "FlorenceMoore",
+   "text": "Miso-Sesame Soba Noodles",
+   "event": false
+  },
+  {
+   "date": "2026-11-06",
+   "hall": "GerhardCasper",
+   "text": "Cheesy Ramen with Chili Crisp and Egg",
+   "event": false
+  },
+  {
+   "date": "2026-11-06",
+   "hall": "Lakeside",
+   "text": "Boudin Bombs",
+   "event": false
+  },
+  {
+   "date": "2026-11-06",
+   "hall": "Ricker",
+   "text": "Loaded Pastrami Fries",
+   "event": false
+  },
+  {
+   "date": "2026-11-06",
+   "hall": "Stern",
+   "text": "Posole",
+   "event": false
+  },
+  {
+   "date": "2026-11-06",
+   "hall": "Wilbur",
+   "text": "Champurrado with Pan Dulce",
+   "event": false
+  }
+ ],
+ "errors": []
+}
