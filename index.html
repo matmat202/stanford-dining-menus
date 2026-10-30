@@ -135,6 +135,8 @@ header.top h1 .red{color:var(--accent)}
   color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
 .toolbar input::placeholder{color:var(--muted)}
 /* Under 390px the three buttons leave the box narrower than its 116px placeholder (100px at 360, ~115 at 375): give search its own row. */
+/* A landscape phone is ~340px tall; stuck there, the rail took 196px (57%) and left 146 for the menu. On short screens it scrolls away. */
+@media (max-height:500px){.rail{position:static}}
 @media (max-width:389px){.toolbar{flex-wrap:wrap}.toolbar input{flex:1 1 100%}.toolbar .iconbtn{flex:1 1 0}}
 .iconbtn{flex:0 0 auto;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r);padding:8px 11px;font-size:12.5px;font-weight:600;color:var(--ink-2);
