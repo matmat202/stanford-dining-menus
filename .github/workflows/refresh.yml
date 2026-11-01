@@ -1,6 +1,8 @@
 # Shipped to .github/workflows/refresh.yml by `publish.sh --ship-code`.
 # A backstop, not the primary path: backstop.sh exits at once unless the live payload is
-# more than 20h old, i.e. unless the laptop's daily refresh (~11:35Z) has not run.
+# more than MAX_AGE_H (12h) old, i.e. unless the laptop's daily refresh (~11:35Z) has not run.
+# 12, not backstop.sh's default 20 (user said tighten, 2026-11-01): worst case 33.7h -> 25.7h,
+# still one scrape a day when the laptop runs at its usual time. `python3 backstop_bound.py`.
 name: Backstop refresh
 on:
   schedule:
@@ -33,3 +35,4 @@ jobs:
       - run: bash backstop.sh --push
         env:
           BACKSTOP_FORCE: ${{ inputs.force && '1' || '0' }}
+          MAX_AGE_H: "12"
