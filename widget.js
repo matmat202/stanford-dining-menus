@@ -42,6 +42,12 @@
     };
   }
 
+  /** '11/01/2026' and '11/1/2026' are the same day. Intl pads the parts; the scraper's
+   *  `days` do not, so on a single-digit date `days.indexOf` missed and EVERY hall read
+   *  "No menu published ... today." Live on 2026-11-01, the first 1st-to-9th the widget
+   *  had seen since it shipped. Canonicalise both sides, so either padding works. */
+  const dayKey = s => String(s).split('/').map(n => String(Number(n))).join('/');
+
   const hm = s => { const [h, m] = s.split(':').map(Number); return h * 60 + m; };
   const fmt = mins => {
     const h = Math.floor(mins / 60) % 24, m = mins % 60;
@@ -121,7 +127,7 @@
     const hi = hallIndex(data, opts.hall);
     if (hi === -1) return { error: `Unknown dining hall \u201c${opts.hall || ''}\u201d.` };
     const now = campusNow(date);
-    const di = data.days.indexOf(now.day);
+    const di = data.days.findIndex(d => dayKey(d) === dayKey(now.day));
     const hall = data.halls[hi];
     if (di === -1) return { error: `No menu published for ${hall.name} today.`, hall };
     const served = mealsServed(data, hi, di);
