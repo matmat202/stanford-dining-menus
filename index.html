@@ -36,6 +36,7 @@
 <script src="keys-logic.js"></script>
 <script src="pin-logic.js"></script>
 <script src="specials-logic.js"></script>
+<script src="chemistry-logic.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
@@ -223,6 +224,7 @@ button:focus-visible,input:focus-visible,summary:focus-visible,a:focus-visible{
 .detail dt{font-size:9.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
   color:var(--muted);margin-top:7px}
 .detail dd{margin:2px 0 0}
+.detail .chem p{margin:0 0 4px;max-width:62ch}
 .detail .alg{color:var(--accent);font-weight:600}
 .only{font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
   color:var(--accent);margin-left:5px}
@@ -577,6 +579,11 @@ function dishNode(x,uniqueAt){
     ?'the ingredients name \u201c'+pk.phrase+'\u201d'
     :'R&DE marks an ingredient \u201cnon-halal\u201d'));}
   if(x.x){dl.append(el('dt',null,'Shared equipment with'),el('dd',null,x.x.toLowerCase()));}
+  // What the cooking word in the name does chemically (chemistry-logic.js). Read from the
+  // name alone, so it sits after the R&DE facts and never stands in for them.
+  const chem=window.ChemistryLogic.notesFor(x.n);
+  if(chem.length){const dd=el('dd','chem');chem.forEach(c=>dd.append(el('p',null,c.note)));
+    dl.append(el('dt',null,'In the pan'),dd);}
   if(!x.i&&!x.a&&!x.x)dl.append(el('dd',null,'No ingredient detail published.'));
   det.append(dl);li.append(det);return li;
 }
