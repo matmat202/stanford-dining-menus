@@ -29,7 +29,26 @@
                      : { kind: 'special', lead: 'R&DE special', text: row.text };
   }
 
-  const api = { dateKey, forHall, label };
+  /** The last night any posted calendar covers: the latest source .to, else the latest row.
+   *  Null when there is nothing to go on (file not loaded, or no rows at all). */
+  function through(data) {
+    if (!data) return null;
+    const ends = (Array.isArray(data.sources) ? data.sources : []).map(s => s && s.to).filter(Boolean);
+    if (!ends.length && Array.isArray(data.specials)) ends.push(...data.specials.map(r => r.date));
+    return ends.length ? ends.sort().pop() : null;
+  }
+
+  /** A weeknight dinner after the last calendar ends: the panel has nothing to show, and
+   *  silence would read as "no special tonight". Returns the end date to name, or null.
+   *  Weekends are skipped because the calendar never covers them (Saturday is not a lapse). */
+  function lapsed(data, day, mealName) {
+    if (mealName !== 'Dinner') return null;
+    const end = through(data), dow = day.getDay();
+    if (!end || dow === 0 || dow === 6) return null;
+    return dateKey(day) > end ? end : null;
+  }
+
+  const api = { dateKey, forHall, label, through, lapsed };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SpecialsLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -37,6 +37,17 @@ check('a hall the calendar does not list has none', L.forHall(data, 'Nowhere', a
 check('not loaded is null, not a throw', L.forHall(null, 'Stern', at(2026, 10, 26), 'Dinner') === null);
 check('every weeknight hall-pair is one row (8 halls x 10 nights)', data.specials.length === 80
       && new Set(data.specials.map(r => r.hall + r.date)).size === 80);
+// past the calendar: the note that replaces silence
+check('through falls back to the last row when sources are absent', L.through(data) === '2026-11-06', L.through(data));
+const withSrc = { specials: data.specials, sources: [{ to: '2026-11-06' }, { to: '2026-11-20' }] };
+check('through takes the LATEST source end, not the first', L.through(withSrc) === '2026-11-20');
+check('Mon 11-09 dinner past the calendar names its end', L.lapsed(data, at(2026, 11, 9), 'Dinner') === '2026-11-06');
+check('the last covered night is not lapsed', L.lapsed(data, at(2026, 11, 6, 23, 30), 'Dinner') === null);
+check('Saturday after the end is not a lapse (never covered)', L.lapsed(data, at(2026, 11, 7), 'Dinner') === null);
+check('lunch after the end says nothing', L.lapsed(data, at(2026, 11, 9), 'Lunch') === null);
+check('a newer source covering the night clears the lapse', L.lapsed(withSrc, at(2026, 11, 9), 'Dinner') === null);
+check('not loaded is not a lapse (no claim without data)', L.lapsed(null, at(2026, 11, 9), 'Dinner') === null
+      && L.lapsed({ specials: [] }, at(2026, 11, 9), 'Dinner') === null);
 check('label names an event as a themed dinner', L.label(st).lead === 'Themed dinner' && L.label(fri).lead === 'R&DE special');
 check('label(null) is null', L.label(null) === null);
 
