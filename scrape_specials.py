@@ -217,6 +217,18 @@ def anchors_wrap(anchors, run):
     return bool(anchors) and abs(anchors[-1]["y"] - run["y"]) < 60
 
 
+def covers(specials):
+    """"weekdays" when no hall-night falls on Sat/Sun, else "every day".
+
+    bin/horizon reads this to know a Friday expiry is still right all weekend (the
+    page's lapse notice is silent on weekends for the same reason). It is derived from
+    the rows, not asserted: if R&DE ever prints a weekend night, the marker drops and
+    horizon goes back to counting every calendar day.
+    """
+    days = {dt.date.fromisoformat(r["date"]).weekday() for r in specials}
+    return "every day" if days & {5, 6} else "weekdays"
+
+
 def main():
     page = fetch(PAGE)
     links = pdf_links(page)
@@ -234,6 +246,7 @@ def main():
         print("specials: refusing to write —", "; ".join(out["errors"]) or "no specials parsed")
         return 1
     out["specials"].sort(key=lambda r: (r["date"], r["hall"]))
+    out["covers"] = covers(out["specials"])
     tmp = OUT + ".tmp"
     with open(tmp, "w") as f:
         json.dump(out, f, indent=1)
