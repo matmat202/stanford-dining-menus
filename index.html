@@ -563,7 +563,7 @@ function dishNode(x,uniqueAt){
   // R&DE stopped tagging halal on 2026-10-20. Pork is read from the words, "not halal" is
   // R&DE's own note; no mark is not a halal claim (allergen-check.js porkNote).
   const pk=window.AllergenCheck.porkNote(x);
-  if(pk)bg.append(el('span','b pork',pk.kind==='pork'?'pork':'not halal'));
+  if(pk)bg.append(el('span','b pork',pk.kind==='pork'?'pork':pk.kind==='alcohol'?'alcohol':'not halal'));
   sum.append(bg);det.append(sum);
   const dl=el('dl','detail');
   if(x.i){dl.append(el('dt',null,'Ingredients'),el('dd',null,x.i));}
@@ -576,9 +576,9 @@ function dishNode(x,uniqueAt){
     dl.append(el('dt',null,'Ingredients vs tags'),dd);}
   if(dc.length){dl.append(el('dt',null,'Diet tag vs contents'),el('dd',null,dc.map(c=>
     'tagged '+c.label+', but '+(c.from==='allergens'?'its allergens list ':'the ingredients name ')+c.why).join('; ')));}
-  if(pk){dl.append(el('dt',null,'Pork / halal'),el('dd',null,pk.kind==='pork'
-    ?'the ingredients name \u201c'+pk.phrase+'\u201d'
-    :'R&DE marks an ingredient \u201cnon-halal\u201d'));}
+  if(pk){dl.append(el('dt',null,pk.kind==='alcohol'?'Alcohol':'Pork / halal'),el('dd',null,pk.kind==='not-halal'
+    ?'R&DE marks an ingredient \u201cnon-halal\u201d'
+    :'the ingredients name \u201c'+pk.phrase+'\u201d'));}
   if(x.x){dl.append(el('dt',null,'Shared equipment with'),el('dd',null,x.x.toLowerCase()));}
   // What the cooking word in the name does chemically (chemistry-logic.js). Read from the
   // name alone, so it sits after the R&DE facts and never stands in for them.

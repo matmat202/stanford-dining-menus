@@ -102,5 +102,20 @@ check('plain "sausage" claims nothing  [negative control]', pk({ n: 'Sausage & M
 check('R&DE\'s "(HALAL)" note is not "non-halal"  [negative control]', pk({ n: 'Steak', i: 'beef (HALAL), mushroom', t: [] }) === null);
 check('empty dish', pk({}) === null);
 
+console.log('\n7. alcohol R&DE didn\'t note (projects/alcohol-marker); real 10-17..11-08 ingredient text');
+check('white wine in a vegan sauce', pk({ n: 'Creamy Tofu Tarragon', i: 'shallots, garlic, white wine, coconut heavy cream', t: ['gf', 'vg'] }) === 'alcohol:wine');
+check('lager beer in beans', pk({ n: 'Borracho Pinto Beans', i: 'pinto beans, water, lager style beer, red onion', t: [] }) === 'alcohol:lager');
+check('ale in a batter', pk({ n: 'Crispy Shrimp Tacos', i: 'soybean oil, yellow corn flour, ale, corn starch', t: [] }) === 'alcohol:ale');
+check('plain mirin', pk({ n: 'Tteokbokki', i: 'canola oil, gochugaru, gochujang, mirin, sugar', t: ['vg'] }) === 'alcohol:mirin');
+check('plain "alcohol" in a sauce', pk({ n: 'Kung Pao Vegetables', i: 'salted chili, soybeans, salt, alcohol, garlic', t: ['vg'] }) === 'alcohol:alcohol');
+check('R&DE\'s note outranks alcohol', pk({ n: 'Lemon Beurre Blanc', i: '(non-halal) dry white wine', t: ['v'] }) === 'not-halal:non-halal');
+check('pork outranks alcohol', pk({ n: 'Cantonese Char Siu Pork', i: 'pork, Shaoxing rice wine (alcohol)', t: [] }) === 'pork:pork');
+check('every wine vinegar is vinegar  [negative control]', pk({ n: 'Caponata', i: 'red wine vinegar, sherry wine vinegar, rice wine vinegar, white wine vinegar, champagne vinegar', t: ['vg'] }) === null);
+check('sherry vinegar alone  [negative control]', pk({ n: 'Bravas', i: 'paprika, sherry vinegar, olive oil', t: ['vg'] }) === null);
+check('alcohol-free mirin, alcohol free tamari  [negative control]', pk({ n: 'Teriyaki', i: 'alcohol-free mirin, alcohol free tamari, sugar', t: ['gf'] }) === null);
+check('wine flavor, sugar alcohol, ginger ale  [negative control]', pk({ n: 'Gravy', i: 'beet, artificial wine flavor, erythritol (sugar alcohol), ginger ale', t: [] }) === null);
+check('apple cider syrup is not hard cider  [negative control]', pk({ n: 'Chicken & Waffles', i: 'Apple Cider Syrup (apple cider, sugar)', t: [] }) === null);
+check('"sake" in a dish name claims nothing  [negative control]', pk({ n: 'Sake Teriyaki Bowl', i: 'salmon, rice, teriyaki sauce', t: [] }) === null);
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

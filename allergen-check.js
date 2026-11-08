@@ -117,8 +117,19 @@
                     /\bsoyrizo\b/g, /\bhamburger\b/g];
   const NOT_HALAL = /\(?\b(non[- ]?halal|not halal)\b\)?/;
 
-  /** {kind:'pork'|'not-halal', phrase} or null. A vegan or vegetarian tag rules out pork
-   * words (Jackfruit Carnitas), not R&DE's note: it marks wine in a vegetarian sauce too. */
+  /* Alcohol R&DE didn't note. Over all 62 published payloads (1011 dishes, 10-17..11-08,
+   * projects/alcohol-marker/NOTES.md), 9 dishes named white wine, lager, ale, mirin, rice wine
+   * or plain "alcohol" with no "(non-halal)" note and no pork word, 5 of them vegan or
+   * vegetarian. Every "wine" in the rest was vinegar, which is the false positive to strip.
+   * Read from the ingredients only: in a dish NAME "sake" is often salmon. */
+  const ALCOHOL = /\b(wine|beer|ale|lager|stout|mirin|sake|shaoxing|rum|bourbon|whiske?y|vodka|brandy|cognac|sherry|marsala|tequila|liqueur|vermouth|champagne|prosecco|hard cider|kahlua|alcohol)\b/;
+  const ALCOHOL_NEG = [/\b((red|white|rice|sherry|champagne|cider|malt|beer|sake|wine)\s+)+vinegar\b/g,
+                       /\b(alcohol[- ]?free|non[- ]?alcoholic)(\s+[\w-]+){1,2}/g, /\bsugar alcohols?\b/g,
+                       /\bginger ale\b/g, /\b(artificial\s+)?(wine|rum|bourbon|brandy|beer)\s+flavou?r(ing)?\b/g];
+
+  /** {kind:'pork'|'not-halal'|'alcohol', phrase} or null. A vegan or vegetarian tag rules out
+   * pork words (Jackfruit Carnitas), not R&DE's note: it marks wine in a vegetarian sauce too.
+   * Pork, then R&DE's note, then alcohol: the first that applies is the one claim shown. */
   function porkNote(dish) {
     const t = dish.t || [];
     let text = ((dish.n || '') + ' ; ' + (dish.i || '')).toLowerCase();
@@ -127,6 +138,10 @@
     if (m) return { kind: 'pork', phrase: m[0] };
     const h = text.match(NOT_HALAL);
     if (h) return { kind: 'not-halal', phrase: h[0].replace(/[()]/g, '') };
+    let ing = (dish.i || '').toLowerCase();
+    for (const re of ALCOHOL_NEG) ing = ing.replace(re, ' ');
+    const a = ing.match(ALCOHOL);
+    if (a) return { kind: 'alcohol', phrase: a[0] };
     return null;
   }
 
