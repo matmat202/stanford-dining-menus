@@ -61,6 +61,11 @@ check('buttermilk pancakes: the acid-base note leads, generic leavening second',
       ids('Buttermilk Pancakes') === 'buttermilk,leaven', ids('Buttermilk Pancakes'));
 check('caramelized onions: caramel, and no repeated browning note',
       ids('Caramelized Onions') === 'caramel', ids('Caramelized Onions'));
+// "Caramelized Onions" matches caramel alone, so it never reaches the de-duplication at all
+// and pins nothing about it. A name that fires BOTH browning rules is what tests the rule
+// (mutation-audit 2026-11-11: without this, `out.length === 2` and `out[0]` both survive).
+check('caramelized AND roasted: the second browning note is dropped',
+      ids('Caramelized Roasted Onions') === 'caramel', ids('Caramelized Roasted Onions'));
 check('blackened catfish: char before the general maillard',
       ids('Blackened Grilled Catfish') === 'char,maillard', ids('Blackened Grilled Catfish'));
 

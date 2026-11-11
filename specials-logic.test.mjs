@@ -44,6 +44,9 @@ check('through takes the LATEST source end, not the first', L.through(withSrc) =
 check('Mon 11-09 dinner past the calendar names its end', L.lapsed(data, at(2026, 11, 9), 'Dinner') === '2026-11-06');
 check('the last covered night is not lapsed', L.lapsed(data, at(2026, 11, 6, 23, 30), 'Dinner') === null);
 check('Saturday after the end is not a lapse (never covered)', L.lapsed(data, at(2026, 11, 7), 'Dinner') === null);
+check('Sunday after the end is not a lapse either', L.lapsed(data, at(2026, 11, 8), 'Dinner') === null);
+check('a source end outranks a later row (rows are a fallback only)',
+      L.through({ specials: [...data.specials, { date: '2026-11-13' }], sources: [{ to: '2026-11-06' }] }) === '2026-11-06');
 check('lunch after the end says nothing', L.lapsed(data, at(2026, 11, 9), 'Lunch') === null);
 check('a newer source covering the night clears the lapse', L.lapsed(withSrc, at(2026, 11, 9), 'Dinner') === null);
 check('not loaded is not a lapse (no claim without data)', L.lapsed(null, at(2026, 11, 9), 'Dinner') === null
