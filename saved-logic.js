@@ -104,7 +104,7 @@
     return { slots: out.filter(e => !e.over), skipped };
   }
 
-  const esc = s => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\;')
+  const esc = s => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;')
     .replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
   /** RFC 5545 3.1: lines over 75 octets fold with CRLF + space; never split a UTF-8 char. */
   function fold(line) {

@@ -152,7 +152,9 @@ console.log('\n8. calendar export (.ics)');
     String(Math.max(...lines.map(l => enc.encode(l).length))));
   const unfolded = ics.replace(/\r\n /g, '');
   check('folding never splits a character', unfolded.includes('Crème brûlée'));
-  check('commas and semicolons escaped', unfolded.includes('Pho\; Beef\\, Rare'));
+  // '\;' in a JS string is a bare ';', so this once read 'Pho; Beef\, Rare' and passed on an
+  // unescaped semicolon, the same lost backslash as the code it checked (fixed 2026-11-11)
+  check('commas and semicolons escaped', unfolded.includes(String.raw`Pho\; Beef\, Rare`));
   check('timed event in campus zone', unfolded.includes('DTSTART;TZID=America/Los_Angeles:20261017T170000'));
   check('all-day event ends the next day', unfolded.includes('DTSTART;VALUE=DATE:20261017') &&
     unfolded.includes('DTEND;VALUE=DATE:20261018'));
@@ -195,6 +197,7 @@ console.log('\nN. last served (history.json)');
     JSON.stringify(r));
   check('every hall serving it that day, by display name', r && r.halls.join('|') === 'Florence Moore|Stern');
   check('days ago counted in calendar days', r && r.daysAgo === 2);
+  check('the meal it was served at', r && r.meal === 'Lunch', r && r.meal);
   check('today does not count as last served (it may still be ahead)', S.lastServed('Tacos', hist, site, now) === null);
   check('a dish the index never saw is null, not a crash', S.lastServed('Nope', hist, site, now) === null);
   check('no index at all is null', S.lastServed('Pho', null, site, now) === null);
