@@ -37,6 +37,7 @@
 <script src="pin-logic.js"></script>
 <script src="specials-logic.js"></script>
 <script src="chemistry-logic.js"></script>
+<script src="holidays-logic.js"></script>
 <style>
 /* --- minimal Leaflet CSS, inlined: external stylesheets are blocked in some hosts --- */
 .leaflet-pane,.leaflet-tile,.leaflet-marker-icon,.leaflet-tile-container,.leaflet-pane>svg,
@@ -463,7 +464,8 @@ function haversine(a,b){const R=6371000,tr=d=>d*Math.PI/180;
 function windowFor(hall,date,mealName){
   if(!hall.hours)return null;
   const wk=(date.getDay()===0||date.getDay()===6)?'weekend':'weekday';
-  const set=hall.hours[wk]||{};
+  // R&DE's break PDF replaces the regular hours on its days (holidays-logic.js).
+  const set=HolidayLogic.hallHours(S.holidays,hall.id,date)||hall.hours[wk]||{};
   const w=set[mealName];
   return w?[hm(w[0]),hm(w[1])]:null;
 }
@@ -471,6 +473,11 @@ function windowFor(hall,date,mealName){
 /** open | soon | shut, plus a human phrase. Only meaningful for today. */
 function statusFor(hall,date,mealName){
   const w=windowFor(hall,date,mealName);
+  // A hall the break PDF closes keeps its regular hours on R&DE's hours page, and may keep
+  // menus in the menu app, so ask the break schedule first, at the meal's start.
+  const at=new Date(date);if(w)at.setHours(0,w[0]);else at.setHours(12);
+  const shut=HolidayLogic.closure(S.holidays,'hall:'+hall.id,at);
+  if(shut)return{k:'shut',txt:`closed for ${shut.label} — reopens ${shut.reopens}`};
   if(!w){
     // R&DE's two sources disagree here: the menu app publishes, say, a Sunday
     // breakfast menu for Arrillaga while the hours page lists no weekend breakfast
@@ -484,7 +491,8 @@ function statusFor(hall,date,mealName){
   const isToday=date.getTime()===today.getTime();
   if(!isToday)return{k:'shut',txt:`${fmt(w[0])}–${fmt(w[1])}`,neutral:true};
   const c=campusNow(),now=c.getHours()*60+c.getMinutes();
-  const late=(now<w[0]||now>w[1])&&window.CafeLogic.lateNow(hall.latenight,c);
+  const late=(now<w[0]||now>w[1])&&!HolidayLogic.closure(S.holidays,'late:'+hall.id,c)
+    &&window.CafeLogic.lateNow(hall.latenight,c);
   if(late)return{k:'late',txt:`${late.label} until ${late.until}`};
   if(now>=w[0]&&now<=w[1]){
     const left=w[1]-now;
@@ -821,7 +829,7 @@ function renderCafes(){
   // pay.json (which venues take Meal Plan / Cardinal Dollars, plus Tresidder hours) is
   // optional: without it this is the cafés list exactly as before, with no filter chips.
   const PAYF={mpd:'Meal Plan $',cd:'Cardinal $'};
-  const all=mergePay(data.venues,S.pay).map(x=>({...x,st:venueStatus(x.windows),
+  const all=mergePay(data.venues,S.pay).map(x=>({...x,st:HolidayLogic.venueStatus(S.holidays,x.name,x.windows,campusNow()),
                                   late:x.windows.some(isLate),noHours:!x.windows.length}));
   const rows=S.cafePay&&S.pay?all.filter(r=>r.pay&&r.pay[S.cafePay]):all;
   rows.sort((a,b)=>(b.st.open-a.st.open)||(a.noHours-b.noHours)||(b.late-a.late)
@@ -853,7 +861,7 @@ function renderCafes(){
     const right=el('span','badges');
     if(r.late)right.append(el('span','latebadge','late'));
     right.append(el('span','pill '+(r.st.open?'open':'shut'),
-      r.st.open?'open':r.noHours?'no hours':'closed'));
+      r.st.open?'open':r.noHours&&!r.st.holiday?'no hours':'closed'));
     h.append(right);card.append(h);
     if(r.pay){
       const pays=[r.pay.mpd&&'Meal Plan $',r.pay.cd&&'Cardinal $',r.pay.cashback&&'3% back on Cardinal $']
@@ -863,6 +871,8 @@ function renderCafes(){
     if(r.noHours)card.append(el('div','desc','R&DE\u2019s pages list no hours for it'));
     if(r.st.open&&r.st.until)
       card.append(el('div','desc',`Open until ${r.st.until}`));
+    else if(r.st.holiday)
+      card.append(el('div','desc',r.st.holiday));
     else if(r.st.opensAt)
       card.append(el('div','desc',`Opens ${r.st.opensAt}`));
     if(r.description)card.append(el('div','desc',r.description));
@@ -1396,6 +1406,9 @@ fetch('data/history.json').then(r=>r.ok?r.json():null)
   .then(h=>{S.history=h;if(S.data&&S.saved&&S.saved.size)renderSaved();}).catch(()=>{});
 fetch('data/trucks.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.trucks=c;if(S.data&&S.view==='trucks')renderTrucks();}).catch(()=>{});
+// R&DE's break schedule (data/holidays.json). Absent outside a break, which is the normal case.
+fetch('data/holidays.json').then(r=>r.ok?r.json():null)
+  .then(c=>{S.holidays=c;if(!S.data)return;if(S.view==='halls')render();else if(S.view==='cafes'&&S.cafes)renderCafes();}).catch(()=>{});
 fetch('data/specials.json').then(r=>r.ok?r.json():null)
   .then(c=>{S.specials=c;if(S.data&&S.view==='halls')render();}).catch(()=>{});
 

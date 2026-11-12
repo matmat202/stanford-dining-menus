@@ -45,6 +45,12 @@ DAYBAND = re.compile(r"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunda
 MEAL = re.compile(r"^(?:(Breakfast|Brunch/Lunch|Brunch|Lunch|Dinner)\s*:\s*)?"
                   r"(\d{1,2}):(\d{2})\s*([ap])\.?m\.?\s*[-–]\s*"
                   r"(\d{1,2}):(\d{2})\s*([ap])\.?m\.?", re.I)
+# Sub-blocks that override the regular band for a date range ("Thanksgiving Week
+# Hours", "Winter Break Hours", "... Closure and Reopening Dates"). Their times are not
+# this hall's standing hours, so recording stops here until the next hall heading.
+# Deliberately does not match the regular sub-heading "Fall Hours".
+OVERRIDE = re.compile(r"(Week Hours|Break Hours|Holiday Hours|Closure)", re.I)
+
 WEEKEND_START = ("saturday", "sunday")
 
 
@@ -76,16 +82,21 @@ def fetch():
 def parse(lines):
     """-> ({hall: {band: {meal: [start, end]}}}, {hall: [start, end]} for late night)"""
     hours, late = {}, {}
-    cur, band, is_late = None, None, False
+    cur, band, is_late, override = None, None, False, False
     for l in lines:
         h = HEADING.match(l)
         if h:
             name = h.group(1)
             is_late = name in LATE
             cur = LATE[name] if is_late else HALL_MAP[name]
-            band = None
+            band, override = None, False
             if not is_late:
                 hours.setdefault(cur, {})
+            continue
+        if cur and OVERRIDE.search(l):
+            override = True
+            continue
+        if override:
             continue
         if cur and DAYBAND.match(l):
             band = "weekend" if DAYBAND.match(l).group(1).lower() in WEEKEND_START else "weekday"
@@ -96,7 +107,11 @@ def parse(lines):
         span = [hhmm(m.group(2), m.group(3), m.group(4)),
                 hhmm(m.group(5), m.group(6), m.group(7))]
         if is_late:
-            late[cur] = span
+            # One unlabelled band per late-night heading; a labelled meal under one is
+            # never its standing hours (2026-11-12: R&DE put Thanksgiving's
+            # "Dinner: 5:00 p.m. - 8:00 p.m." there and it was read as late night).
+            if cur not in late and not (m.group(1) or "").strip():
+                late[cur] = span
         elif band:
             meal = (m.group(1) or "").strip()
             # R&DE labels the weekend meal "Brunch/Lunch" but files its menu under Lunch

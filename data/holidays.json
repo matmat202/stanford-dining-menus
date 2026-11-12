@@ -1,0 +1,30 @@
+{
+  "label": "Thanksgiving",
+  "source": "https://rde.stanford.edu/sites/default/files/2026-11/2026_SDHA_Thanksgiving_Hours.pdf",
+  "transcribed": "2026-11-12, by hand from the RENDERED PDF (projects/holiday-hours/2026_thanksgiving_dining.pdf); pdftotext splits the shared AFDC/Lakeside cell",
+  "closed": [
+    {"keys": ["late:Arrillaga", "venue:Arrillaga Nights @ AFDC"], "from": "2026-11-20T02:00", "until": "2026-12-01T00:00", "reopens": "Dec 1"},
+    {"keys": ["late:Lakeside", "venue:Late Night @ Lakeside"], "from": "2026-11-20T02:00", "until": "2026-11-29T00:00", "reopens": "Nov 29"},
+    {"keys": ["hall:FlorenceMoore", "hall:Stern", "hall:Wilbur", "hall:Ricker"], "from": "2026-11-21T00:00", "until": "2026-11-28T00:00", "reopens": "brunch Nov 28"},
+    {"keys": ["hall:Branner", "hall:GerhardCasper"], "from": "2026-11-21T00:00", "until": "2026-11-30T00:00", "reopens": "lunch Nov 30"},
+    {"keys": ["venue:Decadence", "venue:Decadence Mini Market"], "from": "2026-11-26T00:00", "until": "2026-11-30T00:00", "reopens": "Nov 30"},
+    {"keys": ["venue:The Axe & Palm (TAP)", "venue:UMe Tea inside The AXe & Palm"], "from": "2026-11-21T00:00", "until": "2026-11-30T00:00", "reopens": "Nov 30"},
+    {"keys": ["venue:The Market at Munger"], "from": "2026-11-22T00:00", "until": "2026-11-28T00:00", "reopens": "Nov 28"},
+    {"keys": ["venue:Olives at Bldg. 160", "venue:Forbes Family Café"], "from": "2026-11-21T00:00", "until": "2026-11-30T00:00", "reopens": "Nov 30"},
+    {"keys": ["venue:The Med Café"], "from": "2026-11-25T00:00", "until": "2026-11-30T00:00", "reopens": "Nov 30"},
+    {"keys": ["venue:EVGR Pub & Brewery"], "from": "2026-11-22T00:00", "until": "2026-11-28T00:00", "reopens": "Nov 28"}
+  ],
+  "days": {
+    "venue:SAJJ Mediterranean": {"2026-11-23": null, "2026-11-24": null, "2026-11-25": null, "2026-11-26": null, "2026-11-27": null, "2026-11-28": null, "2026-11-29": null},
+    "venue:Kikka Sushi": {"2026-11-23": ["11:00", "19:00"], "2026-11-24": ["11:00", "19:00"], "2026-11-25": ["11:00", "19:00"], "2026-11-26": null, "2026-11-27": null, "2026-11-28": null, "2026-11-29": null},
+    "venue:Zaida's Kitchen": {"2026-11-23": ["11:00", "14:00"], "2026-11-24": ["11:00", "14:00"], "2026-11-25": ["11:00", "14:00"], "2026-11-26": null, "2026-11-27": null, "2026-11-28": null, "2026-11-29": null},
+    "venue:Panda Express": {"2026-11-23": ["10:30", "20:00"], "2026-11-24": ["10:30", "20:00"], "2026-11-25": ["10:30", "20:00"], "2026-11-26": null, "2026-11-27": null, "2026-11-28": ["11:00", "19:00"], "2026-11-29": ["11:00", "19:00"]},
+    "venue:Starbucks": {"2026-11-23": ["05:30", "19:30"], "2026-11-24": ["05:30", "19:30"], "2026-11-25": ["05:30", "19:30"], "2026-11-26": ["07:30", "17:00"], "2026-11-27": ["07:30", "17:00"], "2026-11-28": ["06:30", "18:30"], "2026-11-29": ["06:30", "18:30"]},
+    "venue:Subway": {"2026-11-23": ["09:00", "20:00"], "2026-11-24": ["09:00", "20:00"], "2026-11-25": ["09:00", "20:00"], "2026-11-26": null, "2026-11-27": null, "2026-11-28": ["11:00", "19:00"], "2026-11-29": ["11:00", "19:00"]},
+    "venue:Wetzel's Pretzels": {"2026-11-23": ["09:30", "19:30"], "2026-11-24": ["09:30", "19:30"], "2026-11-25": ["09:30", "19:30"], "2026-11-26": ["09:30", "19:30"], "2026-11-27": ["09:30", "19:30"], "2026-11-28": ["11:00", "19:00"], "2026-11-29": ["11:00", "19:00"]}
+  },
+  "hall_hours": [
+    {"ids": ["Arrillaga", "Lakeside"], "from": "2026-11-23", "to": "2026-11-27",
+     "hours": {"Breakfast": ["7:30", "10:00"], "Lunch": ["11:00", "14:00"], "Dinner": ["17:00", "20:00"]}}
+  ]
+}
