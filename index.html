@@ -644,7 +644,9 @@ function renderSaved(){
     const li=el('li');li.append(el('div','dn',name));
     const idx=byName.get(name);
     // history.json is optional: without it these lines read exactly as they did before.
-    const last=window.SavedLogic.lastServedText(window.SavedLogic.lastServed(name,S.history,d,campusNow()));
+    const SL=window.SavedLogic,lt=SL.lastServedText(SL.lastServed(name,S.history,d,campusNow())),
+      ft=SL.frequency?SL.frequencyText(SL.frequency(name,S.history,campusNow())):'',
+      last=[lt,ft].filter(Boolean).join(' ');
     if(idx===undefined){
       li.append(el('div','gone','Not on any menu this week.'+(last?' '+last:'')));
     }else{

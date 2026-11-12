@@ -300,5 +300,46 @@ console.log('\n10. edges the earlier sections never stood on (bin/mutate survivo
     [clock(10, 29), clock(10, 30), clock(15, 59), clock(16, 0)].join());
 }
 
+console.log('\nN+1. how often (history.json seen/archived)');
+{
+  // since 10/01: offset 0 = 10/01. Today Sat 10/31 is offset 30; the window is offsets 2..29.
+  const hist = { since: '2026-10-01', archived: [], seen: {
+    Pho: [1, 2, 9, 16, 23, 29, 30, 33],   // 1 is before the window, 30 is today, 33 ahead
+    Oats: [], Gone: [0, 1],
+  } };
+  for (let o = 0; o <= 36; o++) if (o !== 20) hist.archived.push(o);   // the scraper missed day 20
+  hist.seen.Oats = hist.archived.filter(o => o >= 2 && o <= 29);
+  const now = new Date(2026, 9, 31, 12, 0);
+  const f = S.frequency('Pho', hist, now);
+  check('counts only the 28 days before today (2..29): not today, not ahead, not older',
+    f && f.served === 5 && f.of === 27, JSON.stringify(f));
+  check('a day the archive does not hold is not counted as a day it was absent', f && f.of === S.FREQ_DAYS - 1);
+  check('text', S.frequencyText(f) === 'On the menu 5 of the last 27 days.', S.frequencyText(f));
+  const all = S.frequency('Oats', hist, now);
+  check('every day reads as every day', S.frequencyText(all) === 'On the menu every one of the last 27 days.',
+    S.frequencyText(all));
+  check('seen only before the window: nothing to say, not "0 of 27"', S.frequency('Gone', hist, now) === null);
+  check('unknown dish / old index without seen / no index: null',
+    S.frequency('Nope', hist, now) === null && S.frequency('Pho', { dishes: {} }, now) === null &&
+    S.frequency('Pho', null, now) === null);
+  check('text of null is empty', S.frequencyText(null) === '');
+  const young = { since: '2026-10-01', archived: [28, 29], seen: { Pho: [29] } };
+  check('a two-day archive says 1 of 2, not 1 of 28',
+    S.frequencyText(S.frequency('Pho', young, now)) === 'On the menu 1 of the last 2 days.');
+  const one = { since: '2026-10-01', archived: [29], seen: { Pho: [29] } };
+  check('a one-day archive is singular, not "every one of the last 1 days"',
+    S.frequencyText(S.frequency('Pho', one, now)) === 'On the menu 1 of the last 1 day.',
+    S.frequencyText(S.frequency('Pho', one, now)));
+
+  const hp = path.join(HERE, 'data', 'history.json');
+  if (fs.existsSync(hp)) {
+    const h = JSON.parse(fs.readFileSync(hp, 'utf8'));
+    if (h.seen) {
+      const bad = Object.entries(h.seen).filter(([, v]) => v.some(o => !h.archived.includes(o)));
+      check('real index: every day a dish was seen is an archived day', bad.length === 0, bad.slice(0, 3).join(';'));
+    }
+  }
+}
+
 console.log(`\n${pass} passed, ${fail} failed\n`);
 process.exit(fail ? 1 : 0);

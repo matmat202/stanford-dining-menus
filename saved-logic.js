@@ -203,6 +203,35 @@
     return `Last served ${dow} ${m}/${d} at ${where} (${ago}).`;
   }
 
+  /* ---- how often -----------------------------------------------------------
+   * A count, not a forecast. Holding out a week of the archive (2026-11-12), a dish seen
+   * on 1 earlier day was back within the next 7 days 16-18% of the time and one seen on
+   * 8+ days ~100%, while a "usually every N days" guess scored no better than always
+   * saying yes. The denominator is the days the archive actually holds, so a day the
+   * scraper missed is not read as a day the dish was absent.
+   */
+  const FREQ_DAYS = 28;
+
+  /** -> {served, of} over the FREQ_DAYS before today, or null when there is nothing to say. */
+  function frequency(name, hist, now = new Date()) {
+    const seen = hist && hist.seen && hist.seen[name];
+    if (!seen || !hist.since || !Array.isArray(hist.archived)) return null;
+    const [y, m, d] = hist.since.split('-').map(Number);
+    const today = Math.round((new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      - new Date(y, m - 1, d)) / 86400000);
+    const inWindow = o => o < today && o >= today - FREQ_DAYS;
+    const of = hist.archived.filter(inWindow).length;
+    const served = seen.filter(inWindow).length;
+    return of && served ? { served, of } : null;
+  }
+
+  /** "On the menu 6 of the last 26 days." */
+  function frequencyText(f) {
+    if (!f) return '';
+    if (f.served === f.of && f.of > 1) return `On the menu every one of the last ${f.of} days.`;
+    return `On the menu ${f.served} of the last ${f.of} day${f.of === 1 ? '' : 's'}.`;
+  }
+
   /**
    * The meal the page should open on: the one some hall is serving right now, else the
    * next one any hall starts today, else the day's last (after dinner you still want to
@@ -237,7 +266,7 @@
     return h < 10.5 ? 'Breakfast' : h < 16 ? 'Lunch' : 'Dinner';
   }
 
-  const api = { defaultMeal, lastServed, lastServedText, buildIndex, isUpcoming, servingsFor, calendarSlots, toICS, fold, MANY_DAYS, MAX_SHOWN };
+  const api = { defaultMeal, lastServed, lastServedText, frequency, frequencyText, FREQ_DAYS, buildIndex, isUpcoming, servingsFor, calendarSlots, toICS, fold, MANY_DAYS, MAX_SHOWN };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.SavedLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);
