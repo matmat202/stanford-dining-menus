@@ -42,6 +42,13 @@ T = r"(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?"
 RANGE = re.compile(T + r"\s*[-–—]\s*" + T, re.I)
 BAND = re.compile(r"\b(" + "|".join(DAYS) + r")\s*[-–—]\s*(" + "|".join(DAYS) + r")\b", re.I)
 SINGLE_DAY = re.compile(r"\b(" + "|".join(DAYS) + r")\b", re.I)
+# A break sub-block under a venue ("Thanksgiving Week Hours", "Thanksgiving Closure and
+# Reopening Dates"). Nothing after it in the block is the venue's standing week: on
+# 2026-11-14 the Tresidder page's override bands were being read as a second regular
+# schedule, so Starbucks showed Mon-Fri 5:30am and Thu-Fri 7:30am side by side and Panda's
+# "Thursday - Friday Closed" vanished. Break hours come from data/holidays.json instead.
+# Same pattern as check_hours.OVERRIDE (265a06d7), which hit this on the hall page.
+OVERRIDE = re.compile(r"(Week Hours|Break Hours|Holiday Hours|Closure)", re.I)
 # navigation/marketing headings that are not venues
 NOT_VENUE = re.compile(r"^(top header|r&de|dining,|left column|middle column|right column|"
                        r"now offering|simple, delicious|footer|menu|search)\b", re.I)
@@ -98,12 +105,17 @@ def venues(page):
             continue
         marked = re.sub(r"<br\s*/?>|</p>|</li>|</div>|</h\d>", "\n@@\n", chunk)
         lines = [l for l in (text_of(x) for x in marked.split("@@")) if l]
+        # The description may sit after a break notice (Forbes' location line does), so
+        # it reads the whole block minus the notice; the hours stop at the notice.
+        notes = [l for l in lines if not OVERRIDE.search(l) and not re.search(r"\breopen", l, re.I)]
+        cut = next((i for i, l in enumerate(lines) if OVERRIDE.search(l)), None)
+        lines = lines[:cut]
         hours_lines = [l for l in lines if RANGE.search(l)]
         if not hours_lines:
             continue
         # Skip the venue's own name, anything with a time in it, and any line that
         # merely repeats the name as a prefix (R&DE headings often recur in the body).
-        desc = next((l for l in lines
+        desc = next((l for l in notes
                      if len(l) > 40 and not RANGE.search(l)
                      and l != name and not l.startswith(name)), "")
         # R&DE often puts the day band on its own line and the times on the next
