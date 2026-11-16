@@ -11,8 +11,11 @@
 #   MAX_AGE_H=20             hours before the payload counts as stale (default 20)
 #   BACKSTOP_FORCE=1         scrape regardless of age
 #
-# Menus, cafés and food trucks. Those scrapers honour DINING_SITE; the library and rec
-# ones write to a sandbox-only path, and their hours change weekly, not daily.
+# Menus, cafés, food trucks and library hours. Those scrapers honour DINING_SITE; rec's
+# writes to a sandbox-only path, and its hours are recurring weekday windows.
+# Libraries are here because their file is a DATED rolling week (Sun-Sat): until
+# 2026-11-16 a laptop asleep over a Sunday left the tab showing last week, every card
+# "Closed this week".
 # Trucks are here because they are DATED shifts with only a few days of lookahead: a
 # suspended laptop empties the Trucks tab faster than it staled the menus.
 # Uses the repo's OWN scrape.py/build.py, i.e. the live builder, so the payload always
@@ -44,6 +47,7 @@ echo "stale: live payload is ${age}h old — scraping"
 python3 "${SCRAPE_PY:-scrape.py}"
 python3 "${SCRAPE_CAFES_PY:-scrape_cafes.py}" || echo "WARNING: café scrape failed; keeping the previous cafes.json"
 python3 "${SCRAPE_TRUCKS_PY:-scrape_trucks.py}" || echo "WARNING: food truck scrape failed; keeping the previous trucks.json"
+python3 "${SCRAPE_LIBRARIES_PY:-scrape_libraries.py}" || echo "WARNING: library scrape failed; keeping the previous libraries.json"
 python3 build.py
 
 # The same two blocking checks publish.sh applies: broken logic code, and a scrape that came
@@ -66,6 +70,7 @@ PY
 [ "$PUSH" = 1 ] || { echo "built; not pushing (no --push)"; exit 0; }
 git add data/site.json data/cafes.json
 if [ -f data/trucks.json ]; then git add data/trucks.json; fi   # absent in a repo predating the Trucks ship
+if [ -f data/libraries.json ]; then git add data/libraries.json; fi
 if git diff --cached --quiet; then
   echo "no change to publish"
   exit 0

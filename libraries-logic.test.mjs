@@ -230,5 +230,17 @@ console.log('\n9. guards and boundaries the earlier cases never touched (bin/mut
   check('90.5 min before opening -> opensInMin 91', halfSt.opensInMin === 91, String(halfSt.opensInMin));
 }
 
+{
+  const v = d => ({ hours: [{ day: d, weekday: 'X', closed: true }] });
+  const wk = ['2026-11-08', '2026-11-09', '2026-11-14'].map(v);
+  check('a week that covers today is not stale', L.staleWeek(wk, '2026-11-09') === null);
+  const sw = L.staleWeek(wk, '2026-11-16');
+  check('last week on Monday is stale, with its span', sw && sw.first === '2026-11-08' && sw.last === '2026-11-14'
+        && sw.ahead === false, JSON.stringify(sw));
+  check('today covered by only the LAST venue still counts', L.staleWeek([v('2026-11-08'), v('2026-11-16')], '2026-11-16') === null);
+  check('a week entirely ahead is flagged ahead', L.staleWeek(wk, '2026-11-01').ahead === true);
+  check('no data is not a stale week', L.staleWeek([], '2026-11-16') === null);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);

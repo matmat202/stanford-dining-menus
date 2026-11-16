@@ -116,7 +116,25 @@
     return (venues || []).filter(v => libraryStatus(v.hours, now).open).length;
   }
 
-  const api = { fmt12, span, libraryStatus, isLate, statusLabel, weekLabel, openCount };
+  /**
+   * The published week is a rolling seven days, fetched at publish time. When no
+   * library has a record for today the whole file is a past week — the GitHub backstop
+   * refreshed only menus until 2026-11-16, so on Monday 11-16 every card read "Closed
+   * this week" over last week's hours. Returns null when the data covers today, else the
+   * first and last day it does cover (ISO strings), so the page can say so instead.
+   */
+  function staleWeek(venues, todayISO) {
+    let first = null, last = null;
+    for (const v of venues || []) for (const h of v.hours || []) {
+      if (!h.day) continue;
+      if (h.day === todayISO) return null;
+      if (!first || h.day < first) first = h.day;
+      if (!last || h.day > last) last = h.day;
+    }
+    return first ? { first, last, ahead: first > todayISO } : null;
+  }
+
+  const api = { fmt12, span, libraryStatus, isLate, statusLabel, weekLabel, openCount, staleWeek };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.LibraryLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

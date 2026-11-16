@@ -980,18 +980,31 @@ function renderLibraries(){
                                  late:LL.isLate(x.hours)}));
   rows.sort((a,b)=>(b.st.open-a.st.open)||(b.late-a.late)||a.name.localeCompare(b.name));
 
-  const openNow=rows.filter(r=>r.st.open).length;
-  const lede=el('p','tally');
-  lede.append(el('b',null,String(openNow)),
-    document.createTextNode(` of ${rows.length} campus libraries open now`));
-  v.append(lede);
+  // A past (or future) week would make every card read "Closed this week": say what
+  // the file covers instead, and drop the open/closed verdicts it cannot support.
+  const stale=LL.staleWeek&&LL.staleWeek(data.venues,todayISO);   // a cached older module lacks it
+  if(stale){
+    const fmtD=iso=>new Date(iso+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    const w=el('div','stale');
+    w.append(document.createTextNode(`These are the library hours for ${fmtD(stale.first)} – ${fmtD(stale.last)}, `
+      +`not this week's: the site has not fetched the new week yet. Today's hours: `));
+    const a=el('a',null,'library-hours.stanford.edu');a.href='https://library-hours.stanford.edu/';
+    w.append(a);v.append(w);
+    rows.forEach(r=>{r.st=null;});
+  }else{
+    const openNow=rows.filter(r=>r.st.open).length;
+    const lede=el('p','tally');
+    lede.append(el('b',null,String(openNow)),
+      document.createTextNode(` of ${rows.length} campus libraries open now`));
+    v.append(lede);
+  }
 
   rows.forEach(r=>{
     const card=el('div','venue');
     const h=el('h3');h.append(document.createTextNode(r.name));
     const right=el('span','badges');
     if(r.late)right.append(el('span','latebadge','late'));
-    right.append(el('span','pill '+(r.st.open?'open':'shut'),r.st.open?'open':'closed'));
+    if(r.st)right.append(el('span','pill '+(r.st.open?'open':'shut'),r.st.open?'open':'closed'));
     h.append(right);card.append(h);
 
     const label=LL.statusLabel(r.st);
@@ -1017,11 +1030,11 @@ function renderLibraries(){
     if(r.locations&&r.locations.length){
       const subs=el('div','subs');
       r.locations.forEach(sl=>{
-        const sst=LL.libraryStatus(sl.hours,now);
+        const sst=r.st&&LL.libraryStatus(sl.hours,now);
         const row=el('div','sub');
         row.append(el('span','nm',sl.name));
         const when=el('span','when',LL.statusLabel(sst)||'—');
-        if(sst.open&&!r.st.open)when.append(el('span','pill open','open'));
+        if(sst&&sst.open&&!r.st.open)when.append(el('span','pill open','open'));
         row.append(when);
         subs.append(row);
       });

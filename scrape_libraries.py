@@ -31,7 +31,12 @@ import sys
 import urllib.request
 
 URL = "https://library-hours.stanford.edu/libraries.json"
-OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "site/data/libraries.json")
+# DINING_SITE lets the public repo (flat layout: ./data) run this from backstop.sh, as the
+# menu, cafe and truck scrapers already do. The week is date-keyed, so a backstop that
+# skipped it served last week's hours as "Closed this week" every Sunday the laptop slept.
+HERE = os.path.dirname(os.path.abspath(__file__))
+SITE = os.environ.get("DINING_SITE") or os.path.join(HERE, "site")
+OUT = os.path.join(SITE, "data", "libraries.json")
 UA = "stanford-dining-menus/1.0 (+https://github.com/matmat202/stanford-dining-menus)"
 
 
