@@ -1,5 +1,5 @@
 {
- "fetched": "2026-11-16T18:58:34-06:00",
+ "fetched": "2026-11-17T05:14:11-06:00",
  "page": "https://rde.stanford.edu/dining-hospitality/dining-locations-hours",
  "sources": [
   {
@@ -157,7 +157,7 @@
   {
    "date": "2026-11-12",
    "hall": "Arrillaga",
-   "text": "Native American Heritage Month",
+   "text": "Native American Heritage Month Dinner",
    "event": true
   },
   {
@@ -193,8 +193,8 @@
   {
    "date": "2026-11-12",
    "hall": "Stern",
-   "text": "Dinner",
-   "event": true
+   "text": "Morisqueta",
+   "event": false
   },
   {
    "date": "2026-11-12",
@@ -241,8 +241,8 @@
   {
    "date": "2026-11-13",
    "hall": "Stern",
-   "text": "Dinner",
-   "event": true
+   "text": "Morisqueta",
+   "event": false
   },
   {
    "date": "2026-11-13",
@@ -403,19 +403,19 @@
   {
    "date": "2026-11-19",
    "hall": "Branner",
-   "text": "Maple Glazed Yams, Pumpkin Pie, Vegan Apple Pie, and more!",
+   "text": "Thanksgiving Dinner Butternut Squash Soup, Baby Kale Salad, Citrus-Brined Roasted Turkey, Jackfruit Wellington, Brussels Roasted Sprouts, Brioche Stuffing, Yukon Gold Mashed Potatoes, Maple Glazed Yams, Pumpkin Pie, Vegan Apple Pie, and more!",
    "event": true
   },
   {
    "date": "2026-11-19",
    "hall": "FlorenceMoore",
-   "text": "Roasted Turkey, Jackfruit Wellington, Brussels Roasted Sprouts,",
+   "text": "Thanksgiving Dinner Butternut Squash Soup, Baby Kale Salad, Citrus-Brined Roasted Turkey, Jackfruit Wellington, Brussels Roasted Sprouts, Brioche Stuffing, Yukon Gold Mashed Potatoes, Maple Glazed Yams, Pumpkin Pie, Vegan Apple Pie, and more!",
    "event": true
   },
   {
    "date": "2026-11-19",
    "hall": "GerhardCasper",
-   "text": "Soup, Baby Kale Salad, Citrus-Brined",
+   "text": "Thanksgiving Dinner Butternut Squash Soup, Baby Kale Salad, Citrus-Brined Roasted Turkey, Jackfruit Wellington, Brussels Roasted Sprouts, Brioche Stuffing, Yukon Gold Mashed Potatoes, Maple Glazed Yams, Pumpkin Pie, Vegan Apple Pie, and more!",
    "event": true
   },
   {
@@ -427,19 +427,19 @@
   {
    "date": "2026-11-19",
    "hall": "Ricker",
-   "text": "Brioche Stuffing, Yukon Gold Mashed Potatoes,",
+   "text": "Thanksgiving Dinner Butternut Squash Soup, Baby Kale Salad, Citrus-Brined Roasted Turkey, Jackfruit Wellington, Brussels Roasted Sprouts, Brioche Stuffing, Yukon Gold Mashed Potatoes, Maple Glazed Yams, Pumpkin Pie, Vegan Apple Pie, and more!",
    "event": true
   },
   {
    "date": "2026-11-19",
    "hall": "Stern",
-   "text": "Thanksgiving Dinner",
+   "text": "Thanksgiving Dinner Butternut Squash Soup, Baby Kale Salad, Citrus-Brined Roasted Turkey, Jackfruit Wellington, Brussels Roasted Sprouts, Brioche Stuffing, Yukon Gold Mashed Potatoes, Maple Glazed Yams, Pumpkin Pie, Vegan Apple Pie, and more!",
    "event": true
   },
   {
    "date": "2026-11-19",
    "hall": "Wilbur",
-   "text": "Butternut Squash",
+   "text": "Thanksgiving Dinner Butternut Squash Soup, Baby Kale Salad, Citrus-Brined Roasted Turkey, Jackfruit Wellington, Brussels Roasted Sprouts, Brioche Stuffing, Yukon Gold Mashed Potatoes, Maple Glazed Yams, Pumpkin Pie, Vegan Apple Pie, and more!",
    "event": true
   },
   {

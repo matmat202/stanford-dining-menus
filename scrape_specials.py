@@ -114,7 +114,32 @@ def runs_of(line):
             cur = []
         cur.append(b)
     runs.append(cur)
-    return [{"x0": r[0][0], "y": (line["y0"] + line["y1"]) / 2, "text": " ".join(w[4] for w in r)} for r in runs]
+    return [{"x0": r[0][0], "x1": r[-1][2], "y": (line["y0"] + line["y1"]) / 2,
+             "text": " ".join(w[4] for w in r)} for r in runs]
+
+
+# A one-off cell (a themed dinner) is CENTRED: its lines share a centre and start at
+# different x. A bar's own text is LEFT-aligned: its lines share x0. Measured on the Nov 9-20
+# calendar: Thanksgiving's 16 lines agree on centre to 2.5 units, Friday's bar restarts all
+# start at 1060.4. Line spacing cannot tell them apart (cell gaps reach 59, gaps between
+# bars go down to 53), which is why the nearest-bar rule sliced tall cells.
+CENTRE_TOL, X0_SPREAD, LINE_GAP = 4.0, 8.0, 70.0
+
+
+def centred_cells(runs):
+    """Group runs of ONE column into centred multi-line cells: [[run, ...], ...]."""
+    out, cur = [], []
+    for r in sorted(runs, key=lambda r: r["y"]):
+        c = (r["x0"] + r["x1"]) / 2
+        if cur and abs(c - cur[0]["_c"]) <= CENTRE_TOL and r["y"] - cur[-1]["y"] <= LINE_GAP:
+            cur.append(dict(r, _c=c, _src=r))
+            continue
+        if len(cur) >= 2 and max(q["x0"] for q in cur) - min(q["x0"] for q in cur) > X0_SPREAD:
+            out.append(cur)
+        cur = [dict(r, _c=c, _src=r)]
+    if len(cur) >= 2 and max(q["x0"] for q in cur) - min(q["x0"] for q in cur) > X0_SPREAD:
+        out.append(cur)
+    return out
 
 
 def parse(pdf_words):
@@ -178,7 +203,20 @@ def parse(pdf_words):
         if not anchors:
             errors.append(f"week {k + 1}: no labelled hall bars")
             continue
+        # Centred cells in Tuesday-Friday go whole to every bar they span (Thanksgiving: six
+        # halls), or to the nearest bar if they span none; everything else, run by run.
+        taken = set()
+        for c in range(2, 6):
+            for cell in centred_cells([r for r in runs if col(r["x0"]) == c and not LABEL.match(r["text"])]):
+                y0, y1 = cell[0]["y"], cell[-1]["y"]
+                text = " ".join(q["text"] for q in cell)
+                inside = [a for a in anchors if y0 - 20 <= a["y"] <= y1 + 20]
+                for band in inside or [min(anchors, key=lambda a: abs(a["y"] - (y0 + y1) / 2))]:
+                    band["cells"].setdefault(c, []).append({"x0": cell[0]["x0"], "y": y0, "text": text})
+                taken.update(id(q["_src"]) for q in cell)
         for r in runs:
+            if id(r) in taken:
+                continue
             c = col(r["x0"])
             if c is None or not 1 <= c <= 5:
                 errors.append(f"week {k + 1}: text outside Monday-Friday: {r['text']!r}")
