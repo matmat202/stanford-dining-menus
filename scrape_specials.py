@@ -209,7 +209,35 @@ def parse(pdf_words):
         if (r["date"], r["hall"]) in seen:
             errors.append(f"two specials for {r['hall']} on {r['date']}")
         seen[(r["date"], r["hall"])] = r
+    errors += cut_cells(rows)
     return {"from": start.isoformat(), "to": end.isoformat(), "specials": rows, "errors": errors}
+
+
+def cut_cells(rows):
+    """Errors for one-off cells the band assignment has sliced apart.
+
+    Runs go to the NEAREST bar by y, which is right for a bar's own text but wrong for a tall
+    one-off cell whose lines run down past its bar: the Nov 9-20 calendar's AFDC "Native
+    American Heritage Month / Dinner" lost "Dinner" to Stern on two nights, and its
+    Thanksgiving cell (11-19) became six halls' worth of menu fragments, two ending in a
+    comma. Splitting them correctly needs the cell's outline, which is paint; until that is
+    built, the slices are recognised by what they leave behind and the calendar is refused
+    (main() then keeps the previous specials.json, so the page shows its lapse notice rather
+    than a wrong special). Only rows flagged `event` are judged: a bar's own text is fine.
+    """
+    errs, by_date = [], {}
+    for r in rows:
+        if not r["event"]:
+            continue
+        t = r["text"].strip()
+        by_date.setdefault(r["date"], set()).add(t)
+        if t.endswith((",", ";", "-")) or len(t.split()) == 1 or t[:1].islower():
+            errs.append(f"{r['hall']} {r['date']}: event text {t!r} looks cut from a taller cell")
+    for date, texts in sorted(by_date.items()):
+        if len(texts) >= 3:
+            errs.append(f"{date}: {len(texts)} different one-off texts on one night — a cell "
+                        f"spanning several bars was sliced by band")
+    return errs
 
 
 def anchors_wrap(anchors, run):
