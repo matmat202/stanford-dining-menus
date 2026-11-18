@@ -477,7 +477,7 @@ function statusFor(hall,date,mealName){
   // menus in the menu app, so ask the break schedule first, at the meal's start.
   const at=new Date(date);if(w)at.setHours(0,w[0]);else at.setHours(12);
   const shut=HolidayLogic.closure(S.holidays,'hall:'+hall.id,at);
-  if(shut)return{k:'shut',txt:`closed for ${shut.label} — reopens ${shut.reopens}`};
+  if(shut)return{k:'shut',txt:`closed for ${shut.label} — reopens ${shut.reopens}`,holiday:true};
   if(!w){
     // R&DE's two sources disagree here: the menu app publishes, say, a Sunday
     // breakfast menu for Arrillaga while the hours page lists no weekend breakfast
@@ -694,7 +694,9 @@ function renderHalls(rows){
   shown.forEach((r,idx)=>{
     const card=el('details','hall');
     const pinned=S.pinned.has(r.hall.name);
-    if(idx<2||shown.length<=3||pinned)card.open=true;
+    // A hall the break closes keeps a menu in R&DE's app; folded, its card says "closed"
+    // without opening a list of dishes nobody is serving.
+    if((idx<2||shown.length<=3||pinned)&&!r.st.holiday)card.open=true;
     const sum=el('summary');
     const hn=el('div','hname',r.hall.name);
     const pin=el('button','pin',pinned?'pinned':'pin');pin.type='button';
@@ -719,8 +721,11 @@ function renderHalls(rows){
       (r.hall.specialty==='allergen-friendly'?'allergen':r.hall.specialty),r.hall.specialty));
     meta.append(el('span','count',
       r.matched.length===r.total?`${r.total} dishes`:`${r.matched.length} of ${r.total} dishes`));
-    if(r.hall.latenight)meta.append(el('span','count',
-      `· ${r.hall.latenight.label} ${r.hall.latenight.days} ${fmt(hm(r.hall.latenight.hours[0]))}`));
+    if(r.hall.latenight){const ln=r.hall.latenight,
+        ls=HolidayLogic.lateClosure(S.holidays,r.hall.id,ln,parseDay(S.data.days[S.day]));
+      meta.append(el('span','count',ls
+        ?`· ${ln.label} closed for ${ls.label} — reopens ${ls.reopens}`
+        :`· ${ln.label} ${ln.days} ${fmt(hm(ln.hours[0]))}`));}
     sum.append(meta);
     const sp=SpecialsLogic.label(SpecialsLogic.forHall(S.specials,r.hall.id,parseDay(S.data.days[S.day]),S.data.meals[S.meal]));
     if(sp){const line=el('div','hspecial '+sp.kind);line.append(el('b',null,sp.lead));

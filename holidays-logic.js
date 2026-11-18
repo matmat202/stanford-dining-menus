@@ -87,7 +87,20 @@
     return null;
   }
 
-  const api = { dayKey, stamp, labelAt, closure, dayHours, venueStatus, hallHours };
+  /** The break closure covering a hall's late-night service on the night of `date`, else
+   *  null. Asked at the service's OPENING time that evening, because the bands run past
+   *  midnight: Arrillaga Nights' last Thanksgiving service starts 9 pm Nov 19 and ends
+   *  2 am Nov 20, exactly when its closure begins, so asking at midnight or at noon the
+   *  next day would close a night that is still served. The card's standing "Arrillaga
+   *  Nights Tue–Sat 9pm" line used to ignore the break and advertise eleven closed nights. */
+  function lateClosure(H, id, latenight, date) {
+    if (!latenight || !latenight.hours) return null;
+    const [h, m] = String(latenight.hours[0]).split(':').map(Number);
+    const at = new Date(date); at.setHours(h, m || 0, 0, 0);
+    return closure(H, `late:${id}`, at);
+  }
+
+  const api = { dayKey, stamp, labelAt, closure, dayHours, venueStatus, hallHours, lateClosure };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.HolidayLogic = api;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -128,5 +128,18 @@ const noLabelDay = { days: { 'venue:Decadence': { '2026-11-23': null } } };
 check("a labelless closed day still says 'the break', not 'undefined'",
   /Closed today for the break/.test(L.venueStatus(noLabelDay, 'Decadence', win('Decadence'), at(2026, 11, 23, 12, 0)).holiday || ''));
 
+// --- the card's late-night line, per viewed day. It is asked at the band's opening time,
+// so the last night before a closure (9 pm Nov 19 -> 2 am Nov 20) still reads as served.
+const lateShut = (id, d) => L.lateClosure(H, id, halls[id].latenight, at(2026, 11, d, 0, 0));
+check('Arrillaga Nights is served the night of Nov 19 (it ends at 2 am, as the closure starts)', lateShut('Arrillaga', 19) === null);
+check('Arrillaga Nights is closed the night of Nov 20', !!lateShut('Arrillaga', 20));
+check('Arrillaga Nights is closed Nov 21 with Dec 1 as the reopening', (lateShut('Arrillaga', 21) || {}).reopens === 'Dec 1');
+check('Arrillaga Nights is closed Nov 30, the last night before it reopens', !!lateShut('Arrillaga', 30));
+check('Arrillaga Nights is served Dec 1', L.lateClosure(H, 'Arrillaga', halls.Arrillaga.latenight, at(2026, 12, 1)) === null);
+check('Late Night @ Lakeside is closed Nov 28 and served Nov 29', !!lateShut('Lakeside', 28) && lateShut('Lakeside', 29) === null);
+check('lateClosure names the break, for the card to say why', (lateShut('Lakeside', 22) || {}).label === 'Thanksgiving');
+check('no late-night service: lateClosure is null, not a throw', L.lateClosure(H, 'Stern', undefined, at(2026, 11, 22)) === null);
+check('a hall closure does not leak into its late-night line (Lakeside hall stays open)', L.closure(H, 'hall:Lakeside', at(2026, 11, 22)) === null && !!lateShut('Lakeside', 22));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail ? 1 : 0);
