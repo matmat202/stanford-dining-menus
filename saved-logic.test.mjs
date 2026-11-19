@@ -331,6 +331,25 @@ console.log('\nN+1. how often (history.json seen/archived)');
     S.frequencyText(S.frequency('Pho', one, now)) === 'On the menu 1 of the last 1 day.',
     S.frequencyText(S.frequency('Pho', one, now)));
 
+  // Mutation audit 2026-11-18. `|| -> &&` on the SECOND clause of frequency's guard
+  // survived: nothing ever fed it a half-populated history. `hist` comes from
+  // localStorage, so a record written by an older version of the app is the realistic
+  // input, not an exotic one -- and without that guard it reaches hist.since.split()
+  // or hist.archived.filter() and throws.
+  const caught = (fn) => { try { return fn(); } catch (e) { return `THREW ${e.message}`; } };
+  check('history with seen+archived but no since: null, not a throw',
+    caught(() => S.frequency('Pho', { archived: [28, 29], seen: { Pho: [29] } }, now)) === null,
+    caught(() => S.frequency('Pho', { archived: [28, 29], seen: { Pho: [29] } }, now)));
+  check('history whose archived is not an array: null, not a throw',
+    caught(() => S.frequency('Pho', { since: '2026-10-01', archived: 'nope', seen: { Pho: [29] } }, now)) === null,
+    caught(() => S.frequency('Pho', { since: '2026-10-01', archived: 'nope', seen: { Pho: [29] } }, now)));
+  // `f.of > 1` exists only to stop "every one of the last 1 days"; at of === 2 BOTH
+  // branches read correctly, which is why `1 -> 2` survived. Pin the wording.
+  const two = { since: '2026-10-01', archived: [28, 29], seen: { Pho: [28, 29] } };
+  check('two days out of two reads as "every one of the last 2 days"',
+    S.frequencyText(S.frequency('Pho', two, now)) === 'On the menu every one of the last 2 days.',
+    S.frequencyText(S.frequency('Pho', two, now)));
+
   const hp = path.join(HERE, 'data', 'history.json');
   if (fs.existsSync(hp)) {
     const h = JSON.parse(fs.readFileSync(hp, 'utf8'));
