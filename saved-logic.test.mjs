@@ -240,6 +240,9 @@ console.log('\n9. default meal follows the hours, not a fixed clock');
     S.defaultMeal(M, [{ id: 'x' }], sat(9, 45)) === 'Breakfast' && S.defaultMeal(M, [], mon(12)) === 'Lunch');
   check('overnight window is ignored, not treated as open',
     S.defaultMeal(['Breakfast', 'Late'], [{ hours: { weekday: { Breakfast: ['7:00', '9:00'], Late: ['21:00', '1:00'] } } }], mon(23, 30)) === 'Breakfast');
+  // 00:30 is before the overnight window's END: read as a slot, it would be the next meal.
+  check('overnight window is not the next meal just after midnight',
+    S.defaultMeal(['Breakfast', 'Late'], [{ hours: { weekday: { Breakfast: ['7:00', '9:00'], Late: ['21:00', '1:00'] } } }], mon(0, 30)) === 'Breakfast');
 }
 
 // bin/mutate, 2026-10-26: 40 of 160 survived. Every check below was written after planting
