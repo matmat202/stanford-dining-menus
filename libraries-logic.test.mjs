@@ -21,11 +21,16 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const L = require(path.join(HERE, 'libraries-logic.js'));
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, skipped = 0;
 const check = (name, cond, detail = '') => {
   if (cond) { pass++; console.log(`  ok   ${name}`); }
   else { fail++; console.log(`  FAIL ${name}${detail ? '  — ' + detail : ''}`); }
 };
+/* Not a pass. For a real-payload probe whose subject is legitimately absent this week
+ * — SUL shuts the after-hours room over breaks — where asserting presence would red a
+ * correct payload and asserting nothing would claim coverage never taken. Counted and
+ * printed in the summary so a skip that becomes permanent is visible in publish output. */
+const skip = (name, why) => { skipped++; console.log(`  SKIP ${name}  — ${why}`); };
 
 /** An instant in Pacific time, written the way the source writes them. */
 const pt = (iso) => new Date(iso + '-07:00');
@@ -162,9 +167,16 @@ console.log('\n8. against the real scraped payload, not a fabrication');
       d.venues[d.venues.length - 1].id === 'slac');
     const green = d.venues.find(v => v.id === 'green');
     check('green exists with sub-locations', green && green.locations.length > 0);
+    // The room is only SHIPPED when it opens at some point this week: build() drops
+    // sub-locations that never open, and over Thanksgiving and the winter closure SUL
+    // marks all seven days closed. Pinning its presence red a correct payload on
+    // 2026-11-22 and blocked the publish. The 23:55->08:00 crossing this probe exercises
+    // is covered synthetically in section 4, which runs every week regardless.
     const night = green.locations.find(s => /after hours|all.night/i.test(s.name + s.id));
-    check('green carries the after-hours study room', !!night, green.locations.map(s => s.id).join());
-    if (night) {
+    if (!night) {
+      skip('green carries the after-hours study room',
+        `not open any day this week; green ships ${green.locations.map(s => s.id).join() || 'no sub-locations'}`);
+    } else {
       // 03:00 is precisely when this matters and the main desk is shut. Find a night
       // in THIS week's payload whose span crosses midnight, and probe the morning it
       // runs into — the span opens 23:55 on `day` and shuts 08:00 the day after.
@@ -242,5 +254,5 @@ console.log('\n9. guards and boundaries the earlier cases never touched (bin/mut
   check('no data is not a stale week', L.staleWeek([], '2026-11-16') === null);
 }
 
-console.log(`\n${pass} passed, ${fail} failed`);
+console.log(`\n${pass} passed, ${fail} failed${skipped ? `, ${skipped} skipped` : ''}`);
 process.exit(fail ? 1 : 0);
