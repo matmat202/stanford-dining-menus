@@ -62,6 +62,24 @@ console.log('\n2. a plain daytime window — Business Library, Mon–Fri 09:00�
   check('exactly at open is open', L.libraryStatus(h, pt('2026-10-19T09:00')).open === true);
   check('exactly at close is closed', L.libraryStatus(h, pt('2026-10-19T17:00')).open === false,
     'a venue shutting at 5pm is not open at 5pm');
+
+  // NOON. fmt12's `h >= 12 ? 'pm' : 'am'` differs from `h > 12` and from `h >= 13` at
+  // exactly one hour, and every time in this file was 0, 8, 9, 17 or 23 — so both mutants
+  // survived mutwatch (2026-11-22, libraries-logic 55/64). '12am' at midnight above does
+  // not cover it: that is the 'am' side of the same expression.
+  const noon = [rec('2026-10-19', 'Monday', '09:00', '12:00'),
+                rec('2026-10-20', 'Tuesday', '12:00', '17:00')];
+  check('a window closing at noon says 12pm, not 12am',
+    L.libraryStatus(noon, pt('2026-10-19T10:00')).until === '12pm',
+    L.libraryStatus(noon, pt('2026-10-19T10:00')).until);
+  check('...and one opening at noon says 12pm too',
+    L.libraryStatus(noon, pt('2026-10-20T09:00')).opensAt === '12pm',
+    L.libraryStatus(noon, pt('2026-10-20T09:00')).opensAt);
+  check('CONTROL: 11:59 is still am — the pair pins the boundary, not just the hour',
+    L.libraryStatus([rec('2026-10-19', 'Monday', '09:00', '11:59')],
+                    pt('2026-10-19T10:00')).until === '11:59am',
+    L.libraryStatus([rec('2026-10-19', 'Monday', '09:00', '11:59')],
+                    pt('2026-10-19T10:00')).until);
 }
 
 console.log('\n3. closing at midnight — Green, Monday 08:00 to Tuesday 00:00');

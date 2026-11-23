@@ -156,6 +156,21 @@ console.log('\n8. calendar export (.ics)');
   // unescaped semicolon, the same lost backslash as the code it checked (fixed 2026-11-11)
   check('commas and semicolons escaped', unfolded.includes(String.raw`Pho\; Beef\, Rare`));
   check('timed event in campus zone', unfolded.includes('DTSTART;TZID=America/Los_Angeles:20261017T170000'));
+  // DTEND had NO assertion at all, so `pad(e.end[0])pad(e.end[1])` was unmeasured and three
+  // mutwatch mutants survived there (2026-11-22). Asserted on the Wilbur LUNCH slot, whose
+  // end is 13:30: hour and minute differ from each other and from a third index, so a
+  // swapped or shifted index cannot produce the same digits. Dinner ends 20:00 and would
+  // have been a vacuous choice -- pad(0) and a missing minute both read as plausible.
+  check('timed event ENDS at the meal end, hour then minute (13:30, not 30:13)',
+    unfolded.includes('DTSTART;TZID=America/Los_Angeles:20261019T110000') &&
+    unfolded.includes('DTEND;TZID=America/Los_Angeles:20261019T133000'), unfolded);
+  // LOCATION's `concept || name` fallback: the fixture exercised both halls and asserted
+  // neither. Arrillaga has a concept, Wilbur has none, so the two checks bracket the
+  // operator -- `&&` gives Arrillaga its bare name and Wilbur 'undefined'.
+  check('LOCATION is the hall concept where there is one',
+    unfolded.includes('LOCATION:Arrillaga Family Dining Commons'), unfolded);
+  check('...and the hall name where there is not (Wilbur has no concept)',
+    unfolded.includes('LOCATION:Wilbur\r\n'), unfolded);
   check('all-day event ends the next day', unfolded.includes('DTSTART;VALUE=DATE:20261017') &&
     unfolded.includes('DTEND;VALUE=DATE:20261018'));
   check('DTSTAMP is UTC', unfolded.includes('DTSTAMP:20261017T150405Z'));

@@ -20,6 +20,9 @@ check('standing at the door is 1 min, not 0', W.minutes(0) === 1);
 check('label in minutes', W.label(400) === '7 min walk', W.label(400));
 check('label at the walkable limit stays minutes', W.label(2000).endsWith('min walk'));
 check('label past it switches to km', W.label(2400) === '2.4 km', W.label(2400));
+// 2450 m sits just over a tenth's edge, so it tells the 1000 divisor from a near miss
+// (2450/1001 would read '2.4 km'); 2400 cannot.
+check('km is metres over 1000, to the tenth', W.label(2450) === '2.5 km', W.label(2450));
 
 console.log('\n2. reach');
 check('no location -> no verdict', W.reach(open(30), null) === null);
