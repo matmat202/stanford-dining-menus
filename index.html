@@ -583,7 +583,7 @@ function dishNode(x,uniqueAt){
       dd.append('mentions \u201c'+h.phrase+'\u201d, ',el('span','chk','not tagged '+h.allergen.toLowerCase()));});
     dl.append(el('dt',null,'Ingredients vs tags'),dd);}
   if(dc.length){dl.append(el('dt',null,'Diet tag vs contents'),el('dd',null,dc.map(c=>
-    'tagged '+c.label+', but '+(c.from==='allergens'?'its allergens list ':'the ingredients name ')+c.why).join('; ')));}
+    'tagged '+c.label+', but '+(c.from==='allergens'?'its allergens list ':c.from==='name'?'its name says ':'the ingredients name ')+c.why).join('; ')));}
   if(pk){dl.append(el('dt',null,pk.kind==='alcohol'?'Alcohol':'Pork / halal'),el('dd',null,pk.kind==='not-halal'
     ?'R&DE marks an ingredient \u201cnon-halal\u201d'
     :'the ingredients name \u201c'+pk.phrase+'\u201d'));}

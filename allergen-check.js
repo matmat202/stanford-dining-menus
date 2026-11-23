@@ -90,18 +90,53 @@
   const DIET_NEG = [/\b(vegan|plant[- ]based|bee[- ]free)\s+(honey|gelatin)\b/g, /\bhoney[- ]?free\b/g,
                     /\bhoney(dew|crisp)\b/g, /\bagar\b/g];
 
+  /* An animal named in a dish R&DE tags vegan or vegetarian. On 2026-11-22 R&DE's own page put
+   * clsV_Row on Chicken Tinga Tostada (ingredients "chicken tinga (chicken, ...") and the
+   * week's Breakfast Taco Bar listed "pork chorizo" under a vegetarian tag, so the vegetarian
+   * filter served both. Meat words were left out of DIET_RULES because plant-forward "beef"
+   * and oat milk swamped them; the stand-ins are what MEAT_NEG strips. Over 1,921 distinct dish
+   * records in 100 published payloads (10-17..11-22) this leaves 4 dishes: the two above,
+   * Creamy Tofu Tarragon ("chicken base") and Garlic Noodle (plain "oyster sauce"), both worth
+   * a reader's second look. Carnitas, al pastor, steak and meatballs are cooking styles here
+   * (Hongos Carnitas, Tofu Steak), so they are not animals. */
+  const MEAT_WORDS = 'chicken|beef|pork|turkey|lamb|veal|duck|bacon|ham|chorizo|pepperoni|prosciutto|pancetta|salami|' +
+    'sausages?|lard|fish|salmon|tuna|cod|tilapia|halibut|trout|catfish|anchov(?:y|ies)|bonito|shrimp|prawns?|crab|' +
+    'lobster|clams?|mussels?|scallops?|squid|octopus|oyster sauce';
+  const MEAT = new RegExp(`\\b(${MEAT_WORDS})\\b`);
+  const MEAT_NEG = [
+    /"[^"]*"/g,  // a quoted word is a stand-in: plant-forward "beef", meatless "meatballs"
+    new RegExp(`\\b(plant[- ]?forward|plant[- ]based|meatless|beyond|impossible|gardein|vegan|vegetarian|veggie|` +
+      `soy|tofu|tempeh|seitan|jackfruit|mushrooms?|portobello|imitation)(\\s+(?!and\\b|with\\b|or\\b)[\\w-]+){0,2}?` +
+      `\\s+(${MEAT_WORDS})\\b`, 'g'),
+    new RegExp(`\\b(${MEAT_WORDS})[- ]?(seasoning|flavou?r(ed|ing)?|style|type)\\b`, 'g'),  // chicken seasoning, beef-style base
+  ];
+  /** {why, from} for the first animal a vegan/vegetarian dish names, ingredients before name, or null. */
+  function meatIn(dish) {
+    for (const [from, s] of [['ingredients', dish.i], ['name', dish.n]]) {
+      let text = (s || '').toLowerCase();
+      for (const re of MEAT_NEG) text = text.replace(re, ' ');
+      const m = text.match(MEAT);
+      if (m) return { why: m[0], from };
+    }
+    return null;
+  }
+
   /** [{tag, label, why, from}] for each diet tag the dish's own allergen tags or ingredients contradict. */
   function dietConflicts(dish) {
-    const out = [], tags = tagSet(dish.a);
+    const out = [], tags = tagSet(dish.a), t = dish.t || [];
     let ing = (dish.i || '').toLowerCase();
     for (const re of DIET_NEG) ing = ing.replace(re, ' ');
-    for (const t of dish.t || []) {
-      const r = DIET_RULES[t];
+    for (const tag of t) {
+      const r = DIET_RULES[tag];
       if (!r) continue;
-      for (const a of r.allergens) if (tags.has(a)) out.push({ tag: t, label: r.label, why: a.toLowerCase(), from: 'allergens' });
+      for (const a of r.allergens) if (tags.has(a)) out.push({ tag, label: r.label, why: a.toLowerCase(), from: 'allergens' });
       const m = r.words && ing.match(r.words);
-      if (m) out.push({ tag: t, label: r.label, why: m[0], from: 'ingredients' });
+      if (m) out.push({ tag, label: r.label, why: m[0], from: 'ingredients' });
     }
+    // Once per dish, under the stricter tag: "vegan? chicken" says all "vegetarian? chicken" would.
+    const veg = t.includes('vg') ? 'vg' : t.includes('v') ? 'v' : null;
+    const meat = veg && meatIn(dish);
+    if (meat) out.push({ tag: veg, label: DIET_RULES[veg].label, why: meat.why, from: meat.from });
     return out;
   }
 
@@ -134,7 +169,9 @@
     const t = dish.t || [];
     let text = ((dish.n || '') + ' ; ' + (dish.i || '')).toLowerCase();
     for (const re of PORK_NEG) text = text.replace(re, ' ');
-    const m = !(t.includes('vg') || t.includes('v')) && text.match(PORK);
+    // A veg tag mutes pork words only while meatIn() agrees with it: Breakfast Taco Bar was
+    // tagged vegetarian over "pork chorizo", and halal diners lost the mark with the tag.
+    const m = !((t.includes('vg') || t.includes('v')) && !meatIn(dish)) && text.match(PORK);
     if (m) return { kind: 'pork', phrase: m[0] };
     const h = text.match(NOT_HALAL);
     if (h) return { kind: 'not-halal', phrase: h[0].replace(/[()]/g, '') };
@@ -145,7 +182,7 @@
     return null;
   }
 
-  const api = { untagged, noData, warnFor, dietConflicts, porkNote, RULES, DIET_RULES };
+  const api = { untagged, noData, warnFor, dietConflicts, meatIn, porkNote, RULES, DIET_RULES };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.AllergenCheck = api;
 })(typeof window !== 'undefined' ? window : globalThis);

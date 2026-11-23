@@ -82,6 +82,39 @@ check('shared-equipment field (x) is not a contradiction', why({ i: 'rice', a: '
 check('untagged dish -> nothing', why({ i: 'honey, eggs', a: 'EGG', t: [] }) === '');
 check('gelatin contradicts vegetarian too', why({ i: 'gelatin, sugar', a: '', t: ['v'] }) === 'v:gelatin');
 
+console.log('\n5b. an animal named in a vegan/vegetarian dish (R&DE clsV_Row on Chicken Tinga, 2026-11-22)');
+check('Chicken Tinga Tostada, tagged vegetarian -> v:chicken',
+      why({ n: 'Chicken Tinga Tostada', i: '[ HALAL ] chicken tinga (chicken, tinga sauce (onions, pasilla chili, tomatoes))', a: '', t: ['h', 'v'] }) === 'v:chicken');
+check('Breakfast Taco Bar, pork chorizo under a vegetarian tag -> v:pork',
+      why({ n: 'Breakfast Taco Bar', i: 'corn tortilla, green avocado salsa, pork chorizo, black beans', a: '', t: ['v'] }) === 'v:pork');
+check('chicken base in a vegan sauce -> vg:chicken',
+      why({ n: 'Creamy Tofu Tarragon', i: 'white wine, coconut heavy cream, chicken base, tarragon', a: '', t: ['gf', 'vg'] }) === 'vg:chicken');
+check('plain oyster sauce -> v:oyster sauce', why({ n: 'Garlic Noodle', i: 'garlic, parmesan cheese, tamari, oyster sauce', a: 'MILK, SOY', t: ['v'] }) === 'v:oyster sauce');
+check('animal in the name only -> flagged, from the name',
+      A.dietConflicts({ n: 'Chicken Tinga Tostada', i: '', t: ['v'] }).map(c => c.from).join() === 'name');
+check('tagged vegan AND vegetarian -> one mark, the stricter', why({ n: 'Tostada', i: 'chicken, salsa', t: ['vg', 'v'] }) === 'vg:chicken');
+check('a stand-in prefix does not reach across "and"', why({ n: 'Stir Fry', i: 'tofu and chicken, rice', t: ['v'] }) === 'v:chicken');
+check('a meat word on an untagged dish is no conflict', why({ n: 'Chicken Tinga Tostada', i: 'chicken', t: ['gf'] }) === '');
+// Negative controls: every one is real 10-17..11-22 ingredient text that reads as meat to a bare word match.
+const stand = [
+  ['Plant-Forward "Beef" Ropa Vieja', 'plant-forward gardein beef ( soy , wheat ), veggie soup base'],
+  ['Beyond Keema Aloo (Branner)', 'tomatoes, potatoes, beyond ground "beef", garam masala'],
+  ['Plant-Forward Schnitzel', 'meatless breaded "chicken" cutlet, paprika, garlic'],
+  ['Charred Blackened Tofu Steak', 'tofu ( soy ), oat milk, chicken flavor seasoning (garlic, onion)'],
+  ['Ratsherrenpfanne', 'butter, olive/canola oil blend, beef-style vegetable soup base'],
+  ['RSK Dirty Rice', 'crumbles (pea protein isolate, canola oil, beef type flavor [yeast extract])'],
+  ['Oyster Mushroom Piccata', 'oyster mushroom, chicken seasoning, garbanzo flour'],
+  ['Nuoc Cham', 'vegan fish sauce ( soy , wheat ), rice vinegar'],
+  ['Vegetable Stir-Fry', 'cabbage, carrots, garlic, vegetarian oyster sauce, canola/olive oil'],
+  ['Beyond Italian Sausage & Peppers', 'peppers, red pepper flakes, plant forward Italian sausage'],
+  ['Wild Rice & Beyond Sausage Stuffed Peppers', 'beyond sausage, wild rice, oil, onion'],
+  ['Meatless Sausage Patty', 'coconut oil, pea protein, canola oil, natural flavors'],
+  ['Vegan "Meatballs" in Red Sauce', 'marinara sauce ( soy ), meatless "meatballs" (pea protein)'],
+  ['Jackfruit Carnitas', 'jackfruit, cumin, orange'],
+  ['Tempeh Salisbury Steak', 'tempeh, mushroom gravy'],
+];
+for (const [n, i] of stand) check(`${n} is a stand-in  [negative control]`, why({ n, i, a: '', t: ['vg'] }) === '', why({ n, i, a: '', t: ['vg'] }));
+
 console.log('\n6. pork, and R&DE\'s "non-halal" note (projects/pork-marker)');
 const pk = (d) => { const r = A.porkNote(d); return r ? `${r.kind}:${r.phrase}` : null; };
 check('pork named in ingredients', pk({ n: 'Carolina Pulled Pork', i: 'pork, apple cider vinegar', t: ['gf'] }) === 'pork:pork');
@@ -93,6 +126,8 @@ check('not halal without pork: chicken sausage, sheep casing',
   pk({ n: 'Chicken Apple Sausage', i: 'chicken, apples, (non-halal) sheep casing', t: [] }) === 'not-halal:non-halal');
 check('"not halal" spelled out', pk({ n: 'Scramble', i: 'eggs, chicken apple sausage (not halal)', t: [] }) === 'not-halal:not halal');
 check('a vegetarian dish keeps R&DE\'s note (wine)', pk({ n: 'Lemon Beurre Blanc', i: '(non-halal) dry white wine, butter', t: ['gf', 'v'] }) === 'not-halal:non-halal');
+check('pork under a vegetarian tag is still pork (Breakfast Taco Bar)',
+  pk({ n: 'Breakfast Taco Bar', i: 'corn tortilla, green avocado salsa, pork chorizo, black beans', t: ['v'] }) === 'pork:pork');
 check('vegan "carnitas" is not pork  [negative control]', pk({ n: 'Jackfruit Carnitas', i: 'jackfruit, cumin', t: ['vg'] }) === null);
 check('turkey bacon is not pork  [negative control]', pk({ n: 'Turkey Bacon', i: 'turkey thigh meat, sea salt', t: ['gf'] }) === null);
 check('hamburger is not ham  [negative control]', pk({ n: 'Hamburger', i: 'beef patty, bun', t: [] }) === null);
