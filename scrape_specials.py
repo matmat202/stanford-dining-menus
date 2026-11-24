@@ -114,8 +114,27 @@ def runs_of(line):
             cur = []
         cur.append(b)
     runs.append(cur)
-    return [{"x0": r[0][0], "x1": r[-1][2], "y": (line["y0"] + line["y1"]) / 2,
-             "text": " ".join(w[4] for w in r)} for r in runs]
+    out = []
+    for r in runs:
+        # A tall label ("Lakeside:", 40 units) overlaps TWO lines of a smaller centred cell
+        # beside it, so lines_of puts all three on one line and x-order interleaves the cell's
+        # words: "Brussels Glazed Sprouts, Yams with Maple-" (Nov 23 calendar). Within a run,
+        # words whose own centres differ by more than half a word height are separate lines.
+        subs = []
+        for w in r:
+            c, h = (w[1] + w[3]) / 2, w[3] - w[1]
+            for sub in subs:
+                if abs(c - sub["c"]) <= 0.5 * min(h, sub["h"]):
+                    sub["w"].append(w)
+                    break
+            else:
+                subs.append({"c": c, "h": h, "w": [w]})
+        y = (line["y0"] + line["y1"]) / 2
+        for sub in sorted(subs, key=lambda q: q["c"]):
+            out.append({"x0": sub["w"][0][0], "x1": sub["w"][-1][2],
+                        "y": y if len(subs) == 1 else sub["c"],
+                        "text": " ".join(w[4] for w in sub["w"])})
+    return out
 
 
 # A one-off cell (a themed dinner) is CENTRED: its lines share a centre and start at
@@ -124,6 +143,8 @@ def runs_of(line):
 # start at 1060.4. Line spacing cannot tell them apart (cell gaps reach 59, gaps between
 # bars go down to 53), which is why the nearest-bar rule sliced tall cells.
 CENTRE_TOL, X0_SPREAD, LINE_GAP = 4.0, 8.0, 70.0
+CLOSED = re.compile(r"\bwill be closed\b|\bclosed and reopen", re.I)
+NOTICE = re.compile(r"scan the qr code for .*hours of operation", re.I)
 
 
 def centred_cells(runs):
@@ -192,12 +213,25 @@ def parse(pdf_words):
         top = row["y1"]
         bottom = date_rows[k + 1]["y0"] if k + 1 < len(date_rows) else float("inf")
         runs = [r for ln in lines if top <= ln["y0"] < bottom for r in runs_of(ln)]
+        # A closure notice is a labelled bar across the whole week, starting in the Sunday
+        # cell: "Wilbur: In observance of the Thanksgiving Holiday Wilbur will be closed and
+        # reopen at Brunch Nov. 28" (Nov 23 calendar). The hall has no special that week; the
+        # page already shows the closure from the hours page, so the notice is dropped.
+        runs = [r for r in runs if not (LABEL.match(r["text"]) and col(r["x0"]) in (0, 1)
+                                        and CLOSED.search(r["text"]))]
+        # A weekend cell that is wholly the QR-code pointer to the holiday hours is not a meal.
+        for c in (0, 6):
+            cell = sorted((r for r in runs if col(r["x0"]) == c), key=lambda r: r["y"])
+            if cell and NOTICE.fullmatch(" ".join(r["text"] for r in cell)):
+                runs = [r for r in runs if col(r["x0"]) != c]
         # Band anchors: a labelled run starting in the Monday cell.
         anchors = []
         for r in runs:
             lm = LABEL.match(r["text"])
             if col(r["x0"]) == 1 and lm:
-                anchors.append({"y": r["y"], "hall": LABELS[lm.group(1).lower()], "cells": {}})
+                anchors.append({"y": r["y"], "y1": r["y"], "hall": LABELS[lm.group(1).lower()], "cells": {}})
+            elif col(r["x0"]) == 1 and anchors_wrap(anchors, r):
+                anchors[-1]["y1"] = max(anchors[-1]["y1"], r["y"])
             elif col(r["x0"]) == 1 and re.match(r"^[A-Z][\w .'&]*:\s", r["text"]) and not anchors_wrap(anchors, r):
                 errors.append(f"week {k + 1}: unknown hall label in {r['text']!r}")
         if not anchors:
@@ -209,8 +243,10 @@ def parse(pdf_words):
         for c in range(2, 6):
             for cell in centred_cells([r for r in runs if col(r["x0"]) == c and not LABEL.match(r["text"])]):
                 y0, y1 = cell[0]["y"], cell[-1]["y"]
-                text = " ".join(q["text"] for q in cell)
-                inside = [a for a in anchors if y0 - 20 <= a["y"] <= y1 + 20]
+                text = re.sub(r"(\w)- (?=[A-Z])", r"\1-", " ".join(q["text"] for q in cell))  # "Maple-|Glazed"
+                # A band is its label line through its wrapped lines: AFDC's Nov 23 bar
+                # wraps to the line where Thanksgiving's cell starts, 37 below the label.
+                inside = [a for a in anchors if y0 - 20 <= a["y1"] and a["y"] <= y1 + 20]
                 for band in inside or [min(anchors, key=lambda a: abs(a["y"] - (y0 + y1) / 2))]:
                     band["cells"].setdefault(c, []).append({"x0": cell[0]["x0"], "y": y0, "text": text})
                 taken.update(id(q["_src"]) for q in cell)
